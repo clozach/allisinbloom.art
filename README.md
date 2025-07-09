@@ -17,7 +17,7 @@ A collection of poems and prose, built with mdsvex and notion.
 ## TODO
 
 - [ ] Kick-start the project
-   - [ ] Initialize SvelteKit repo with mdsvex & commit with machine-generated test content
+   - [x] Initialize SvelteKit repo with mdsvex & commit with machine-generated test content
    - [ ] Work with the user to create a static page with just one poem to publish as the site's first content
    - [ ] Guide the user through setting up Vercel, incl. configuring DNS records
    - [ ] Write a staging script that simply pushes the current code to the staging branch
