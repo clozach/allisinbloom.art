@@ -1,18 +1,12 @@
 <script>
   import { onMount } from 'svelte';
   
-  let featuredPoems = [
-    { title: 'Morning Dew', path: '/poems/morning-dew' },
-    { title: 'Whispers of Autumn', path: '/poems/whispers-of-autumn' },
-    { title: 'Ocean Memories', path: '/poems/ocean-memories' }
-  ];
+  /** @type {import('./$types').PageData} */
+  export let data;
   
+  let featuredPoems = data.featuredPoems;
   let randomQuote = '';
-  const quotes = [
-    "Poetry is the spontaneous overflow of powerful feelings: it takes its origin from emotion recollected in tranquility.",
-    "Poetry is what gets lost in translation.",
-    "Poetry is the revelation of a feeling that the poet believes to be interior and personal which the reader recognizes as his own."
-  ];
+  const quotes = data.quotes;
   
   onMount(() => {
     randomQuote = quotes[Math.floor(Math.random() * quotes.length)];

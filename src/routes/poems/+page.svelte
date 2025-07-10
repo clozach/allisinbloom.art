@@ -1,26 +1,8 @@
 <script>
-  // This would typically fetch from an API or import data
-  // For now, we'll hardcode the poems list
-  const poems = [
-    {
-      title: 'Morning Dew',
-      path: '/poems/morning-dew',
-      date: '2025-07-09',
-      description: 'A poem about the quiet beauty of dawn'
-    },
-    {
-      title: 'Whispers of Autumn',
-      path: '/poems/whispers-of-autumn',
-      date: '2025-07-08',
-      description: 'A reflection on the changing seasons'
-    },
-    {
-      title: 'Ocean Memories',
-      path: '/poems/ocean-memories',
-      date: '2025-07-07',
-      description: 'Reflections on the sea and time'
-    }
-  ];
+  /** @type {import('./$types').PageData} */
+  export let data;
+  
+  const poems = data.poems;
 </script>
 
 <svelte:head>
