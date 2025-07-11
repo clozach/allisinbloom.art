@@ -1,5 +1,8 @@
 <script>
   import { page } from '$app/stores';
+  
+  // Check if we're on the home page
+  $: isHomePage = $page.url.pathname === '/';
 </script>
 
 <svelte:head>
@@ -8,6 +11,7 @@
 </svelte:head>
 
 <div class="app">
+  {#if !isHomePage}
   <header>
     <div class="header-content">
       <h1><a href="/">Allisin Bloom</a></h1>
@@ -20,14 +24,18 @@
       </nav>
     </div>
   </header>
+  {/if}
 
-  <main>
+  <main class={isHomePage ? 'home-main' : ''}>
     <slot />
   </main>
-
-  <footer>
-    <p>© {new Date().getFullYear()} Allisin Bloom. All rights reserved.</p>
-  </footer>
+  
+  <!-- Bottom bar with artist signature aligned to the right -->
+  <div class="bottom-bar">
+    <div class="artist-signature">
+      <img src="/artist-sig.png" alt="Artist Signature" />
+    </div>
+  </div>
 </div>
 
 <style>
@@ -38,6 +46,16 @@
     line-height: 1.6;
     color: #333;
     background-color: #f9f9f9;
+  }
+  
+  /* Global rule for clickable elements */
+  :global(button),
+  :global(input[type="submit"]),
+  :global(input[type="button"]),
+  :global(input[type="reset"]),
+  :global(.clickable),
+  :global([role="button"]) {
+    cursor: pointer;
   }
 
   .app {
@@ -68,6 +86,7 @@
   h1 a {
     text-decoration: none;
     color: #333;
+    cursor: pointer;
   }
 
   nav ul {
@@ -82,6 +101,7 @@
     text-decoration: none;
     color: #555;
     font-size: 1rem;
+    cursor: pointer;
   }
 
   nav a:hover {
@@ -95,20 +115,65 @@
     margin: 0 auto;
     padding: 2rem 1rem;
   }
-
-  footer {
-    text-align: center;
-    padding: 1.5rem;
-    background-color: #fff;
-    border-top: 1px solid #eee;
-    font-size: 0.9rem;
-    color: #666;
+  
+  /* Home page specific main styling */
+  .home-main {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 60px); /* Account for bottom bar */
   }
 
-  @media (max-width: 600px) {
-    .header-content {
-      flex-direction: column;
-      gap: 1rem;
+  /* Bottom Bar with Signature */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #eeebe2; /* Cream background color */
+    z-index: 100;
+    box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.1); /* Drop shadow above the bar */
+    height: 60px;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Artist Signature - aligned to the far right */
+  .artist-signature {
+    margin-left: auto; /* Push to the right */
+    padding: 10px 20px;
+    cursor: pointer; /* Show pointing hand when hovering */
+  }
+  
+  .artist-signature img {
+    width: 220px;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .artist-signature img {
+      width: 180px;
+    }
+  }
+  
+  /* iPhone SE specific optimizations */
+  @media (max-width: 375px) {
+    .bottom-bar {
+      height: 50px;
+    }
+    
+    .artist-signature img {
+      width: 160px;
+    }
+    
+    .home-main {
+      min-height: calc(100vh - 50px);
     }
   }
 </style>

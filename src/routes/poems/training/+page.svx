@@ -1,7 +1,6 @@
 ---
 title: training
 date: "2025-07-09"
-description: "a poem about attention deficit dependency"
 ---
 
 # training

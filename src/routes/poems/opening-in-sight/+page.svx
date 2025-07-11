@@ -1,7 +1,6 @@
 ---
 title: opening in sight
 date: "2025-07-08"
-description: "A reflection on the changing seasons"
 ---
 
 # opening in sight

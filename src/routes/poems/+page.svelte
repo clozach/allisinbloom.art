@@ -19,7 +19,6 @@
         <div class="poem-meta">
           <span class="date">{poem.date}</span>
         </div>
-        <p class="description">{poem.description}</p>
       </a>
     {/each}
   </div>
@@ -50,6 +49,7 @@
     text-decoration: none;
     color: inherit;
     transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
   }
   
   .poem-item:hover {
@@ -68,8 +68,5 @@
     color: #666;
   }
   
-  .description {
-    margin: 0;
-    color: #555;
-  }
+
 </style>

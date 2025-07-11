@@ -1,7 +1,6 @@
 ---
 title: my king
 date: "2025-07-07"
-description: "Reflections on the sea and time"
 ---
 
 # my king
