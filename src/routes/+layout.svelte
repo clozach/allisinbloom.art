@@ -123,7 +123,8 @@
     margin: 0;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    padding-top: 5rem;
     min-height: calc(100vh - 60px); /* Account for bottom bar */
   }
 

@@ -9,7 +9,7 @@
   // Store the current poem in a reactive variable
   let currentPoem = data.randomPoem && data.randomPoem.content ? data.randomPoem : {
     title: "opening in sight",
-    content: "<p>No poem content available</p>"
+    content: "there’s but one tale unwending\nyours and mine the merest part\nno one knows the ending\nnone can know the start"
   };
   
   /**
@@ -46,22 +46,10 @@
   /* Poem container with responsive margins */
   .poem-container {
     width: 100%;
-    max-width: 1200px;
+    max-width: 800px;
     padding: 0 20px;
     box-sizing: border-box;
     cursor: default;
-  }
-  
-  /* Responsive layout for different screen sizes */
-  @media (min-width: 768px) {
-    .poem-container {
-      padding: 0 80px;
-    }
-  }
-  
-  @media (min-width: 1024px) {
-    .poem-container {
-      padding: 0 120px;
-    }
+    margin: 0 auto;
   }
 </style>

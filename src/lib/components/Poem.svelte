@@ -1,6 +1,9 @@
 <script>
   import { fade } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
+  import Author from './Author.svelte';
+  import PoemTitle from './PoemTitle.svelte';
+  import PoemContent from './PoemContent.svelte';
   
   /**
    * @typedef {Object} PoemProps
@@ -19,10 +22,11 @@
 </script>
 
 <div class="poem" transition:fade={{duration: 400, easing: quintOut}}>
-  <h2 class="poem-title">{poem.title}</h2>
-  <div class="poem-content">
+  <PoemTitle>{poem.title}</PoemTitle>
+  <Author>allisin bloom</Author>
+  <PoemContent>
     {@html poem.content}
-  </div>
+  </PoemContent>
 </div>
 
 <style>
@@ -31,31 +35,10 @@
     text-align: center;
   }
   
-  .poem-title {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-    font-weight: normal;
-    color: #333;
-  }
-  
-  .poem-content {
-    font-size: 1.2rem;
-    line-height: 1.8;
-    color: #444;
-  }
-  
   @media (min-width: 768px) {
     .poem {
       margin-left: 20%;
       text-align: left;
-    }
-    
-    .poem-title {
-      font-size: 1.8rem;
-    }
-    
-    .poem-content {
-      font-size: 1.4rem;
     }
   }
   

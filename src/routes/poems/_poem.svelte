@@ -20,18 +20,18 @@
       // Extract the poem content from the pre/code elements or paragraphs
       const preElement = contentElement.querySelector('pre code');
       if (preElement && preElement.textContent) {
-        // For code block poems
+        // For code block poems - preserve as raw text to maintain formatting
         poemContent = preElement.textContent;
       } else {
         // For regular paragraph poems
         const paragraphs = contentElement.querySelectorAll('p');
         if (paragraphs.length > 0) {
           poemContent = Array.from(paragraphs)
-            .map(p => p.outerHTML)
-            .join('');
+            .map(p => p.textContent || '')
+            .join('\n\n');
         } else {
           // Fallback to all content
-          poemContent = contentElement.innerHTML;
+          poemContent = contentElement.textContent || '';
         }
       }
     }
@@ -51,7 +51,7 @@
 <style>
   .poem-container {
     width: 100%;
-    max-width: 1200px;
+    max-width: 800px;
     padding: 0 20px;
     box-sizing: border-box;
     margin: 0 auto;
@@ -63,17 +63,5 @@
     visibility: hidden;
     height: 0;
     overflow: hidden;
-  }
-  
-  @media (min-width: 768px) {
-    .poem-container {
-      padding: 0 80px;
-    }
-  }
-  
-  @media (min-width: 1024px) {
-    .poem-container {
-      padding: 0 120px;
-    }
   }
 </style>
