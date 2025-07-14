@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/clearing-song/download",
+      "destination": "/audio/clearing-song.mp3",
+      "permanent": false
+    }
+  ]
+}
