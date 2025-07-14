@@ -12,14 +12,8 @@
     display: block;
     font-family: 'Noto Sans', sans-serif;
     font-weight: 300;
-    font-size: 0.9rem;
+    font-size: smaller;
     margin-bottom: 1.5rem;
     color: #555;
-  }
-  
-  @media (min-width: 768px) {
-    .author {
-      font-size: 1rem;
-    }
   }
 </style>

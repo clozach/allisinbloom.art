@@ -32,25 +32,6 @@
 <style>
   .poem {
     margin: 0 auto;
-    text-align: center;
-  }
-  
-  @media (min-width: 768px) {
-    .poem {
-      margin-left: 20%;
-      text-align: left;
-    }
-  }
-  
-  @media (min-width: 1024px) {
-    .poem {
-      margin-left: 30%;
-    }
-  }
-  
-  @media (min-width: 1400px) {
-    .poem {
-      margin-left: 40%;
-    }
+    text-align: left;
   }
 </style>

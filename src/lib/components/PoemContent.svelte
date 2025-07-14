@@ -11,7 +11,6 @@
 
 <style>
   .poem-content {
-    font-size: 1.2rem;
     line-height: 1.8;
     color: #444;
     white-space: pre-wrap;
@@ -28,11 +27,5 @@
     font-size: inherit;
     line-height: inherit;
     color: inherit;
-  }
-  
-  @media (min-width: 768px) {
-    .poem-content {
-      font-size: 1.4rem;
-    }
   }
 </style>

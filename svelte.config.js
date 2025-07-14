@@ -15,6 +15,13 @@ const config = {
 			}
 		})
 	],
+	vitePlugin: {
+		inspector: {
+			showToggleButton: 'always',
+			toggleButtonPos: 'bottom-right',
+			editorMode: 'system'
+		},
+	},
 	extensions: ['.svelte', '.svx']
 };
 
