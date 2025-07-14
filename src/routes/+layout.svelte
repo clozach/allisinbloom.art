@@ -12,7 +12,7 @@
 
 <div class="app">
   {#if !isHomePage}
-  <header>
+  <header style="display:none;">
     <div class="header-content">
       <h1><a href="/">Allisin Bloom</a></h1>
       <nav>
@@ -33,7 +33,9 @@
   <!-- Bottom bar with artist signature aligned to the right -->
   <div class="bottom-bar">
     <div class="artist-signature">
-      <img src="/artist-sig.png" alt="Artist Signature" />
+      <a href="https://bsky.app/profile/allisinbloom.bsky.social" target="_blank" rel="noopener noreferrer">
+        <img src="/artist-sig.png" alt="Artist Signature" />
+      </a>
     </div>
   </div>
 </div>
