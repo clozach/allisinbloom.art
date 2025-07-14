@@ -42,7 +42,6 @@
   :global(body) {
     margin: 0;
     padding: 0;
-    font-family: 'Georgia', serif;
     line-height: 1.6;
     color: #333;
     background-color: #f9f9f9;

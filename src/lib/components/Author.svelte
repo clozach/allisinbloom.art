@@ -11,7 +11,7 @@
   .author {
     display: block;
     font-family: 'Noto Sans', sans-serif;
-    font-weight: 300;
+    font-weight: 100;
     font-size: smaller;
     margin-bottom: 1.5rem;
     color: #555;

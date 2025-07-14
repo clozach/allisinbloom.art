@@ -5,12 +5,13 @@
    */
 </script>
 
-<h2 class="poem-title"><slot></slot></h2>
+<div class="poem-title"><slot></slot></div>
 
 <style>
   .poem-title {
-    margin-bottom: 1.5rem;
-    font-weight: normal;
+    font-family: 'Noto Serif Display', serif;
+    font-stretch: semi-condensed;
+    font-weight: bold;
     color: #333;
   }
 </style>
