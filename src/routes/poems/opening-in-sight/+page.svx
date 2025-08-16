@@ -5,5 +5,5 @@ date: "2025-07-08"
 
 there’s but one tale unwending
 yours and mine the merest part
-no one knows the ending
-none can know the start
+no one knows the <a href="poems/money-grubbing">ending</a>
+none can know the <a href="poems/wood-between-the-worlds">start</a>

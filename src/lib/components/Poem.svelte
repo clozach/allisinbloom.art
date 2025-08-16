@@ -34,4 +34,27 @@
     margin: 0 auto;
     text-align: left;
   }
+
+  /* Links inside {@html} content are not scoped; style them via :global */
+  .poem :global(a) {
+    text-decoration: none;
+    color: inherit;
+  }
+  .poem :global(a::after) {
+    content: 'º';
+    color: #caa8d6;
+    margin-left: 0.15em;
+    font-size: .7em;
+    vertical-align:super;
+  }
+  .poem :global(a:hover),
+  .poem :global(a:hover::after) {
+    color: #caa8d6;
+  }
+  .poem :global(a:active),
+  .poem :global(a:focus),
+  .poem :global(a:active::after),
+  .poem :global(a:focus::after) {
+    color: #b077c5;
+  }
 </style>
