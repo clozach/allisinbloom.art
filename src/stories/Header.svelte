@@ -4,7 +4,7 @@
 
   /**
    * @typedef {Object} Props
-   * @property {{name: string}} [user] The user object
+   * @property {{name: string} | null} [user] The user object (nullable)
    * @property {() => void} [onLogin] The login event handler
    * @property {() => void} [onLogout] The logout event handler
    * @property {() => void} [onCreateAccount] The account creation event handler

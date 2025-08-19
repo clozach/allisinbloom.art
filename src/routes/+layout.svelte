@@ -26,7 +26,7 @@
   </header>
   {/if}
 
-  <main class={isHomePage ? 'home-main' : ''}>
+  <main>
     <slot />
   </main>
   
@@ -117,17 +117,7 @@
     padding: 2rem 1rem;
   }
   
-  /* Home page specific main styling */
-  .home-main {
-    max-width: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 5rem;
-    min-height: calc(100vh - 60px); /* Account for bottom bar */
-  }
+  /* Home page specific main styling removed to keep wrappers identical */
 
   /* Bottom Bar with Signature */
   .bottom-bar {
@@ -172,10 +162,6 @@
     
     .artist-signature img {
       width: 160px;
-    }
-    
-    .home-main {
-      min-height: calc(100vh - 50px);
     }
   }
 </style>

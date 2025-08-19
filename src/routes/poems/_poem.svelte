@@ -5,6 +5,7 @@
   // MDsveX passes frontmatter as props
   export let title = '';
   export const date = '';
+  export let slug = '';
   
   let poemContent = '';
 
@@ -17,19 +18,29 @@
   });
 
   $: {
-    // Determine slug from current path: /poems/<slug>
+    // Determine slug: use provided prop if present, else derive from path
     const pathname = $page.url.pathname;
     const parts = pathname.split('/').filter(Boolean);
-    const slug = parts[1];
-    if (slug) {
-      const poemPath = `/src/routes/poems/${slug}/+page.svx`;
+    const derivedSlug = parts[1];
+    const effectiveSlug = slug || derivedSlug;
+    if (effectiveSlug) {
+      const poemPath = `/src/routes/poems/${effectiveSlug}/+page.svx`;
       const rawContent = poemFiles[poemPath];
       if (typeof rawContent === 'string') {
         try {
           const contentParts = rawContent.split('---');
-          poemContent = contentParts.length >= 3
-            ? contentParts.slice(2).join('---').trim()
-            : rawContent.trim();
+          if (contentParts.length >= 3) {
+            const frontmatter = contentParts[1];
+            poemContent = contentParts.slice(2).join('---').trim();
+            if (!title) {
+              const m = frontmatter.match(/^\s*title:\s*(.*)$/m);
+              if (m) {
+                title = m[1].trim().replace(/^"|"$/g, '');
+              }
+            }
+          } else {
+            poemContent = rawContent.trim();
+          }
         } catch (e) {
           console.error('Failed to extract poem content:', e);
           poemContent = '';

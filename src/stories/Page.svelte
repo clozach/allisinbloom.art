@@ -2,6 +2,7 @@
   import './page.css';
   import Header from './Header.svelte';
 
+  /** @type {{ name: string } | null } */
   let user = $state(null);
 </script>
 

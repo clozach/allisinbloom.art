@@ -1,6 +1,4 @@
 <script>
-  import { fade } from 'svelte/transition';
-  import { quintOut } from 'svelte/easing';
   import Author from './Author.svelte';
   import PoemTitle from './PoemTitle.svelte';
   import PoemContent from './PoemContent.svelte';
@@ -21,7 +19,7 @@
   }
 </script>
 
-<div class="poem" transition:fade={{duration: 400, easing: quintOut}}>
+<div class="poem">
   <PoemTitle>{poem.title}</PoemTitle>
   <Author>allisin bloom</Author>
   <PoemContent>

@@ -1,13 +1,14 @@
 <script>
-	import { onMount } from 'svelte';
+  import { onMount } from 'svelte';
 
-	let audioElement;
+  /** @type {HTMLAudioElement | null} */
+  let audioElement = null;
 
-	onMount(() => {
-		if (audioElement) {
-			audioElement.volume = 0.7; // Set default volume
-		}
-	});
+  onMount(() => {
+    if (audioElement) {
+      audioElement.volume = 0.7; // Set default volume
+    }
+  });
 </script>
 
 <svelte:head>
