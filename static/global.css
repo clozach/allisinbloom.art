@@ -5,13 +5,12 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Noto Serif', 'Georgia', serif;
-  font-size: 1.8rem;
-  line-height: 1.6;
+  font-size: 1.2rem;
   color: #333;
   background-color: #f9f9f9;
-/* Use a smaller font for mobile to avoid wrapping*/
+  /* Use a smaller font for mobile to avoid wrapping*/
     @media (max-width: 768px) {
-      font-size: 1.3rem;
+      font-size: 1.1rem;
     }
 }
 

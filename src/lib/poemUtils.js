@@ -103,6 +103,44 @@ export function getRandomPoem() {
 }
 
 /**
+ * Gets a specific poem by slug with its content
+ * @param {string} slug - The slug of the poem to get
+ * @returns {PoemData|null} - Poem with content or null if not found
+ */
+export function getPoemBySlug(slug) {
+  const allPoems = getAllPoems();
+  const poem = allPoems.find(p => p.slug === slug);
+  
+  if (!poem) return null;
+  
+  // Get the poem content from the raw file content
+  const poemPath = `/src/routes/poems/${slug}/+page.svx`;
+  const rawContent = poemFiles[poemPath];
+  
+  /** @type {PoemData} */
+  const poemWithContent = { 
+    ...poem,
+    content: '' // Initialize with empty content
+  };
+  
+  // Extract the raw content from the file
+  if (rawContent && typeof rawContent === 'string') {
+    try {      
+      // Extract the content part (after the frontmatter)
+      const contentParts = rawContent.split('---');
+      if (contentParts.length >= 3) {
+        // Everything after the second --- delimiter is the content
+        poemWithContent.content = contentParts.slice(2).join('---').trim();
+      }
+    } catch (error) {
+      console.error(`Error extracting content for poem ${slug}:`, error);
+    }
+  }
+  
+  return poemWithContent;
+}
+
+/**
  * Gets random quotes from poems
  * @returns {Array<string>} - Array of quotes
  */

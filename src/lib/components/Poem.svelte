@@ -2,28 +2,19 @@
   import Author from './Author.svelte';
   import PoemTitle from './PoemTitle.svelte';
   import PoemContent from './PoemContent.svelte';
-  
-  /**
-   * @typedef {Object} PoemProps
-   * @property {string} title - The title of the poem
-   * @property {string} content - The content of the poem
-   */
 
-  /** @type {PoemProps} */
-  export let poem;
-  
-  // Track when the poem changes to trigger the transition
-  let poemKey = poem.title;
-  $: if (poem.title !== poemKey) {
-    poemKey = poem.title;
-  }
+  /**
+   * Title of the poem (from front-matter).
+   * The poem body is provided via the default slot compiled by mdsvex.
+   */
+  export let title = '';
 </script>
 
 <div class="poem">
-  <PoemTitle>{poem.title}</PoemTitle>
+  <PoemTitle>{title}</PoemTitle>
   <Author>allisin bloom</Author>
   <PoemContent>
-    {@html poem.content}
+    <slot />
   </PoemContent>
 </div>
 

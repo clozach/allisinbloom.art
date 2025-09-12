@@ -1,8 +1,45 @@
 <script>
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
   
   // Check if we're on the home page
   $: isHomePage = $page.url.pathname === '/';
+  
+  // Get routes from layout data
+  $: routes = $page.data.routes || ['opening-in-sight'];
+  
+  // Determine current route from URL
+  $: currentRoute = getCurrentRoute($page.url.pathname);
+  $: currentIndex = routes.indexOf(currentRoute);
+  
+  // Navigation state - ensure routes are loaded and currentIndex is valid
+  $: validCurrentIndex = routes.length > 0 && currentIndex >= 0 ? currentIndex : 0;
+  $: hasPrevious = routes.length > 1 && validCurrentIndex > 0;
+  $: hasNext = routes.length > 1 && validCurrentIndex < routes.length - 1;
+  $: previousUrl = hasPrevious ? (validCurrentIndex === 1 ? '/' : `/poems/${routes[validCurrentIndex - 1]}`) : null;
+  $: nextUrl = hasNext ? `/poems/${routes[validCurrentIndex + 1]}` : null;
+  
+  function getCurrentRoute(pathname) {
+    if (pathname === '/') {
+      return routes && routes.length > 0 ? routes[0] : 'opening-in-sight';
+    }
+    const match = pathname.match(/\/poems\/([^/]+)/);
+    return match ? match[1] : (routes && routes.length > 0 ? routes[0] : 'opening-in-sight');
+  }
+  
+  function handlePrevious() {
+    if (!hasPrevious) return;
+    if (previousUrl) {
+      goto(previousUrl);
+    }
+  }
+  
+  function handleNext() {
+    if (!hasNext) return;
+    if (nextUrl) {
+      goto(nextUrl);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -30,8 +67,28 @@
     <slot />
   </main>
   
-  <!-- Bottom bar with artist signature aligned to the right -->
+  <!-- Bottom bar with navigation and artist signature -->
   <div class="bottom-bar">
+    <div class="nav-buttons">
+      <button 
+        class="nav-button previous" 
+        class:disabled={!hasPrevious}
+        disabled={!hasPrevious}
+        title={hasPrevious ? `Go to ${previousUrl}` : 'No previous poem'}
+        on:click={handlePrevious}
+      >
+        previously [&lt;]
+      </button>
+      <button 
+        class="nav-button next" 
+        class:disabled={!hasNext}
+        disabled={!hasNext}
+        title={hasNext ? `Go to ${nextUrl}` : 'No next poem'}
+        on:click={handleNext}
+      >
+        another [&gt;]
+      </button>
+    </div>
     <div class="artist-signature">
       <a href="https://bsky.app/profile/allisinbloom.bsky.social" target="_blank" rel="noopener noreferrer">
         <img src="/artist-sig.png" alt="Artist Signature" />
@@ -119,7 +176,7 @@
   
   /* Home page specific main styling removed to keep wrappers identical */
 
-  /* Bottom Bar with Signature */
+  /* Bottom Bar with Navigation and Signature */
   .bottom-bar {
     position: fixed;
     bottom: 0;
@@ -131,12 +188,51 @@
     height: 60px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  
+  /* Navigation buttons */
+  .nav-buttons {
+    display: flex;
+    gap: 2rem;
+  }
+  
+  .nav-button {
+    background: none;
+    border: none;
+    font-family: 'Noto Serif', serif;
+    font-size: 1rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: color 0.2s ease;
+  }
+  
+  .nav-button:hover {
+    color: #caa8d6;
+  }
+  
+  .nav-button:active,
+  .nav-button:focus {
+    color: #b077c5;
+    outline: none;
+  }
+  
+  .nav-button.disabled,
+  .nav-button:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .nav-button.disabled:hover,
+  .nav-button:disabled:hover {
+    color: #ccc;
   }
   
   /* Artist Signature - aligned to the far right */
   .artist-signature {
-    margin-left: auto; /* Push to the right */
-    padding: 10px 20px;
+    padding: 10px 0;
     cursor: pointer; /* Show pointing hand when hovering */
   }
   

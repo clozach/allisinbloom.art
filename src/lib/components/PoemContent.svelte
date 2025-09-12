@@ -13,7 +13,7 @@
   .poem-content {
     line-height: 1.8;
     color: #444;
-    white-space: pre-wrap;
+    white-space: pre-line;
   }
   
   /* Format code blocks properly */

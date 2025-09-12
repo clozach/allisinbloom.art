@@ -2,37 +2,28 @@
 
 A collection of poems and prose, built with mdsvex and notion.
 
-## Workflow Criteria
+## Tech & Services
 
-1. Writing begins in Notion
-2. When a page status changes to "Staged", it is exported into mdsvex in ./src/routes and pushed to the staging branch
-3. When a page status changes to "Published", it is exported into mdsvex in ./src/routes and pushed to the main branch
-
-## Services
-
-- Notion API
+- SvelteKit w/Svelte 5 (https://svelte.dev/llms-small.txt)
 - GitHub API
 - Vercel
 
 ## TODO
+- [x] Replace random poem loading with simple MVP of a single home page with no interactivity & the "opening in sight" poem inlined onto the home page.
+- [x] Add `actions` buttons from: https://www.figma.com/design/D9xiMh3Fno8hlA4eUtZjVu/allisin-bloom-allisinbloom.art?node-id=372-447&t=WJBUJ6VTgvAfCP14-11
+   - [x] Implement click handlers
+      - [x] To determine the routes navigated by clicking `another [>]` and `previously [<]`, load `routes.txt`—a plaintext file with one route per line.
+   - [ ] Position & style another/previously buttons to match Figma:
 
-- [ ] Kick-start the project
-   - [x] Initialize SvelteKit repo with mdsvex & commit with machine-generated test content
-   - [ ] Work with the user to create a static page with just one poem to publish as the site's first content
-   - [ ] Guide the user through setting up Vercel, incl. configuring DNS records
-   - [ ] Write a staging script that simply pushes the current code to the staging branch
-   - [ ] Write a production script that simply pushes the current code to the main branch
+- [ ] (user-activity): populate the rest of the file & add more poems to flesh out the site some more.
+- [ ] Write scripts to push to a preview branch, then add an automation so it happens without effort on every commit
 
 ## Development
 
 This project is powered by [`sv`](https://github.com/sveltejs/cli) (SvelteKit).
 
 ```bash
-# Start the development server
-pnpm run dev
-
-# Start the server and open the app in a new browser tab
-pnpm run dev -- --open
+   nvm use; pnpm run dev -- --open
 ```
 
 ## Building
@@ -40,9 +31,9 @@ pnpm run dev -- --open
 To create a production version of the app:
 
 ```bash
-pnpm run build
+   nvm use; pnpm run build
 ```
 
-You can preview the production build with `npm run preview`.
+You can preview the production build with `nvm use; npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
