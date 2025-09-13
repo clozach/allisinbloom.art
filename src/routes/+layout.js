@@ -1,7 +1,7 @@
 /** @type {import('@sveltejs/kit').Load} */
 export async function load({ fetch, data }) {
   try {
-    const response = await fetch('/routes.txt');
+    const response = await fetch('/route.txt');
     const text = await response.text();
     const routes = text.split('\n').filter(route => route.trim() !== '');
     const r = {

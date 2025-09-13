@@ -3,7 +3,6 @@ title: a-life-worth-living
 date: "1999-11-11"
 ---
 
-```
 *for Becky “Tutu” Connable*
 
 smiling is not the same as laughing
@@ -32,4 +31,3 @@ to have had them
 in the first place
 
 ■
-```

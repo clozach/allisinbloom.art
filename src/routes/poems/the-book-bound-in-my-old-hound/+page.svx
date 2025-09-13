@@ -3,9 +3,6 @@ title: the book bound in my old hound
 date: "2025/02/13"
 ---
 
-# the book bound in my old hound
-
-```
 the leather soft and supple
 nothing went to waste
 	those days
@@ -51,4 +48,3 @@ of an ancient loved-one on my tongue
 twirling face-up to the cycling sky
 
 ■
-```

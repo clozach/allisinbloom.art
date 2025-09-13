@@ -12,7 +12,7 @@ A collection of poems and prose, built with mdsvex and notion.
 - [x] Replace random poem loading with simple MVP of a single home page with no interactivity & the "opening in sight" poem inlined onto the home page.
 - [x] Add `actions` buttons from: https://www.figma.com/design/D9xiMh3Fno8hlA4eUtZjVu/allisin-bloom-allisinbloom.art?node-id=372-447&t=WJBUJ6VTgvAfCP14-11
    - [x] Implement click handlers
-      - [x] To determine the routes navigated by clicking `another [>]` and `previously [<]`, load `routes.txt`—a plaintext file with one route per line.
+      - [x] To determine the routes navigated by clicking `another [>]` and `previously [<]`, load `route.txt`—a plaintext file with one route per line.
    - [ ] Position & style another/previously buttons to match Figma:
 
 - [ ] (user-activity): populate the rest of the file & add more poems to flesh out the site some more.

@@ -3,8 +3,6 @@ title: width test
 date: "1999-11-11"
 ---
 
-```
 WIDTH TEST
-like the first bird to land on the smoothest of lakes
+but reincarnation’s a dart-hurling drunk, so here i sit before you
 SHOULD BE 3 LINES
-```
