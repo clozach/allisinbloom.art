@@ -8,10 +8,6 @@ body {
   font-size: 1.2rem;
   color: #333;
   background-color: #f9f9f9;
-  /* Use a smaller font for mobile to avoid wrapping*/
-    @media (max-width: 768px) {
-      font-size: 1.1rem;
-    }
 }
 
 /* Content wrapper - replaces inline style */
@@ -27,4 +23,9 @@ input[type="reset"],
 .clickable,
 [role="button"] {
   cursor: pointer;
+}
+* {
+  /* * Uncomment ↓ to debug */
+  /* outline: 1px solid rgba(255, 0, 0, 0.5); */
+  outline-offset: -1px;
 }

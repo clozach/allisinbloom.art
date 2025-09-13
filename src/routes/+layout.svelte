@@ -169,9 +169,10 @@
 
   main {
     flex: 1;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
+    margin: 0px auto;
+    margin-top: 12vh;
+    padding: 0;
+    font-size: clamp(0.11rem, calc(0.11rem + (1.5rem - 0.11rem) * ((100vw - 50px) / (568px - 50px))), 1.5rem); 
   }
   
   /* Home page specific main styling removed to keep wrappers identical */

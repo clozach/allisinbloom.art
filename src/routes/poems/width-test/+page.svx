@@ -1,0 +1,10 @@
+---
+title: width test
+date: "1999-11-11"
+---
+
+```
+WIDTH TEST
+like the first bird to land on the smoothest of lakes
+SHOULD BE 3 LINES
+```

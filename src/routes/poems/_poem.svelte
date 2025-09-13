@@ -14,8 +14,6 @@
   .poem-container {
     width: 100%;
     max-width: 800px;
-    padding: 0 20px;
-    box-sizing: border-box;
     margin: 0 auto;
   }
 </style>
