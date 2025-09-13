@@ -169,10 +169,11 @@
 
   main {
     flex: 1;
-    margin: 0px auto;
+    margin: 0 auto;
     margin-top: 12vh;
+    margin-bottom: 30vh;
     padding: 0;
-    font-size: clamp(0.11rem, calc(0.11rem + (1.5rem - 0.11rem) * ((100vw - 50px) / (568px - 50px))), 1.5rem); 
+    font-size: clamp(0.09rem, calc(0.09rem + (1.5rem - 0.09rem) * ((100vw - 50px) / (568px - 50px))), 1.5rem); 
   }
   
   /* Home page specific main styling removed to keep wrappers identical */
@@ -212,6 +213,11 @@
   
   .nav-button:hover {
     color: #caa8d6;
+  }
+  @media (hover: none) {
+    .nav-button:hover {
+      color: inherit;
+    }
   }
   
   .nav-button:active,
