@@ -66,34 +66,6 @@
     <slot />
   </main>
   
-  <!-- Bottom bar with navigation and artist signature -->
-  <div class="bottom-bar">
-    <div class="nav-buttons">
-      <button 
-        class="nav-button previous" 
-        class:disabled={!hasPrevious}
-        disabled={!hasPrevious}
-        title={hasPrevious ? `Go to ${previousUrl}` : 'No previous poem'}
-        on:click={handlePrevious}
-      >
-        previously [&lt;]
-      </button>
-      <button 
-        class="nav-button next" 
-        class:disabled={!hasNext}
-        disabled={!hasNext}
-        title={hasNext ? `Go to ${nextUrl}` : 'No next poem'}
-        on:click={handleNext}
-      >
-        another [&gt;]
-      </button>
-    </div>
-    <div class="artist-signature">
-      <a href="https://bsky.app/profile/allisinbloom.bsky.social" target="_blank" rel="noopener noreferrer">
-        <img src="/artist-sig.png" alt="Artist Signature" />
-      </a>
-    </div>
-  </div>
 </div>
 
 <style>
@@ -121,24 +93,33 @@
     min-height: 100vh;
   }
 
-  nav ul {
-    display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    gap: 1.5rem;
-  }
-
-  nav a {
+  /* Global link styles with decorative elements */
+  :global(a) {
     text-decoration: none;
-    color: #555;
-    font-size: 1rem;
-    cursor: pointer;
+    color: inherit;
+  }
+  :global(a::after) {
+    content: 'º';
+    color: #caa8d6;
+    margin-left: 0.15em;
+    font-size: .7em;
+    vertical-align: super;
+  }
+  :global(a:hover),
+  :global(a:hover::after) {
+    color: #caa8d6;
+  }
+  :global(a:active),
+  :global(a:focus),
+  :global(a:active::after),
+  :global(a:focus::after) {
+    color: #b077c5;
   }
 
-  nav a:hover {
-    color: #000;
-    text-decoration: underline;
+  .app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
 
   main {
@@ -151,94 +132,4 @@
   }
   
   /* Home page specific main styling removed to keep wrappers identical */
-
-  /* Bottom Bar with Navigation and Signature */
-  .bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #eeebe2; /* Cream background color */
-    z-index: 100;
-    box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.1); /* Drop shadow above the bar */
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-  }
-  
-  /* Navigation buttons */
-  .nav-buttons {
-    display: flex;
-    gap: 2rem;
-  }
-  
-  .nav-button {
-    background: none;
-    border: none;
-    font-family: 'Noto Serif', serif;
-    font-size: 1rem;
-    color: #666;
-    cursor: pointer;
-    padding: 0.5rem 1rem;
-    transition: color 0.2s ease;
-  }
-  
-  .nav-button:hover {
-    color: #caa8d6;
-  }
-  @media (hover: none) {
-    .nav-button:hover {
-      color: inherit;
-    }
-  }
-  
-  .nav-button:active,
-  .nav-button:focus {
-    color: #b077c5;
-    outline: none;
-  }
-  
-  .nav-button.disabled,
-  .nav-button:disabled {
-    color: #ccc;
-    cursor: not-allowed;
-  }
-  
-  .nav-button.disabled:hover,
-  .nav-button:disabled:hover {
-    color: #ccc;
-  }
-  
-  /* Artist Signature - aligned to the far right */
-  .artist-signature {
-    padding: 10px 0;
-    cursor: pointer; /* Show pointing hand when hovering */
-  }
-  
-  .artist-signature img {
-    width: 220px;
-    height: auto;
-    object-fit: contain;
-    display: block;
-  }
-  
-  /* Mobile optimizations */
-  @media (max-width: 768px) {
-    .artist-signature img {
-      width: 180px;
-    }
-  }
-  
-  /* iPhone SE specific optimizations */
-  @media (max-width: 375px) {
-    .bottom-bar {
-      height: 50px;
-    }
-    
-    .artist-signature img {
-      width: 160px;
-    }
-  }
 </style>
