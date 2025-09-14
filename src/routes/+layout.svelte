@@ -1,5 +1,6 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
+  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   
   // Check if we're on the home page
@@ -19,7 +20,7 @@
   $: previousUrl = hasPrevious ? (validCurrentIndex === 1 ? '/' : `/poems/${routes[validCurrentIndex - 1]}`) : null;
   $: nextUrl = hasNext ? `/poems/${routes[validCurrentIndex + 1]}` : null;
   
-  function getCurrentRoute(pathname) {
+  function getCurrentRoute(pathname: string) {
     if (pathname === '/') {
       return routes && routes.length > 0 ? routes[0] : 'opening-in-sight';
     }
@@ -40,6 +41,19 @@
       goto(nextUrl);
     }
   }
+
+  // Global keyboard navigation (ArrowLeft/Right and j/k)
+  onMount(() => {
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === '>' || e.key === 'k') {
+        handleNext();
+      } else if (e.key === 'ArrowLeft' || e.key === '<' || e.key === 'j') {
+        handlePrevious();
+      }
+    };
+    window.addEventListener('keydown', keyHandler);
+    return () => window.removeEventListener('keydown', keyHandler);
+  });
 </script>
 
 <svelte:head>
