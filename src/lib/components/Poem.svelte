@@ -1,5 +1,5 @@
 <script>
-  import Author from './Author.svelte';
+  import ByLine from './ByLine.svelte';
   import PoemTitle from './PoemTitle.svelte';
   import PoemContent from './PoemContent.svelte';
 
@@ -15,6 +15,6 @@
   <PoemContent>
     <slot />
   </PoemContent>
-  <Author />
+  <ByLine />
 </div>
 
