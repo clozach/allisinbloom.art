@@ -62,21 +62,6 @@
 </svelte:head>
 
 <div class="app">
-  {#if !isHomePage}
-  <header style="display:none;">
-    <div class="header-content">
-      <h1><a href="/">Allisin Bloom</a></h1>
-      <nav>
-        <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/poems">Poems</a></li>
-          <li><a href="/about">About</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
-  {/if}
-
   <main>
     <slot />
   </main>
@@ -134,31 +119,6 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-  }
-
-  header {
-    background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .header-content {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: 1.8rem;
-  }
-
-  h1 a {
-    text-decoration: none;
-    color: #333;
-    cursor: pointer;
   }
 
   nav ul {
