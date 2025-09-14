@@ -45,10 +45,10 @@
   // Global keyboard navigation (ArrowLeft/Right and j/k)
   onMount(() => {
     const keyHandler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === '>' || e.key === 'k') {
-        handleNext();
-      } else if (e.key === 'ArrowLeft' || e.key === '<' || e.key === 'j') {
+      if (e.key === 'ArrowLeft' || e.key === '<' || e.key === 'j' || e.key === ',') {
         handlePrevious();
+      } else if (e.key === 'ArrowRight' || e.key === '>' || e.key === 'k' || e.key === '.') {
+        handleNext();
       }
     };
     window.addEventListener('keydown', keyHandler);
