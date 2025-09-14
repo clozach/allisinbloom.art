@@ -28,6 +28,29 @@ hr {
   border: none;
   border-top: 2px dashed #eeebe2;
 }
+
+/* Global link styles */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+a::after {
+  content: 'º';
+  color: #caa8d6;
+  margin-left: 0.15em;
+  font-size: .7em;
+  vertical-align: super;
+}
+a:hover,
+a:hover::after {
+  color: #caa8d6;
+}
+a:active,
+a:focus,
+a:active::after,
+a:focus::after {
+  color: #b077c5;
+}
 * {
   /* * Uncomment ↓ to debug */
   /* outline: 1px solid rgba(255, 0, 0, 0.5); */
