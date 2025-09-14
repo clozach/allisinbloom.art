@@ -1,56 +1,24 @@
-/* Global styles for Allisin Bloom website */
+/* CSS Reset and base styles only */
 
-/* Base styles */
+/* Reset margins and padding */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Basic body reset */
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Noto Serif', 'Georgia', serif;
-  font-size: 1.2rem;
 }
 
-/* Content wrapper - replaces inline style */
+/* Content wrapper utility */
 .content-wrapper {
   display: contents;
 }
 
-/* Global rule for clickable elements */
-button,
-input[type="submit"],
-input[type="button"],
-input[type="reset"],
-.clickable,
-[role="button"] {
-  cursor: pointer;
-}
-hr {
-  width: 30%;
-  margin: 2rem auto;
-  border: none;
-  border-top: 2px dashed #eeebe2;
-}
-
-/* Global link styles */
-a {
-  text-decoration: none;
-  color: inherit;
-}
-a::after {
-  content: 'º';
-  color: #caa8d6;
-  margin-left: 0.15em;
-  font-size: .7em;
-  vertical-align: super;
-}
-a:hover,
-a:hover::after {
-  color: #caa8d6;
-}
-a:active,
-a:focus,
-a:active::after,
-a:focus::after {
-  color: #b077c5;
-}
+/* Debug outline utility (commented by default) */
 * {
   /* * Uncomment ↓ to debug */
   /* outline: 1px solid rgba(255, 0, 0, 0.5); */
