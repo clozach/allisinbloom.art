@@ -12,6 +12,5 @@
     font-family: 'Noto Serif Display', serif;
     font-stretch: semi-condensed;
     font-weight: bold;
-    color: #333;
   }
 </style>

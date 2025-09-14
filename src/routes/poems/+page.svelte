@@ -59,13 +59,11 @@
   
   .poem-item h2 {
     margin: 0 0 0.5rem 0;
-    color: #333;
   }
   
   .poem-meta {
     margin-bottom: 0.75rem;
     font-size: 0.9rem;
-    color: #666;
   }
   
 

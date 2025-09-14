@@ -12,7 +12,6 @@
 <style>
   .poem-content {
     line-height: 1.8;
-    color: #444;
     white-space: pre-line;
   }
   
@@ -26,6 +25,5 @@
     margin: 0;
     font-size: inherit;
     line-height: inherit;
-    color: inherit;
   }
 </style>

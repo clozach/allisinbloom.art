@@ -10,11 +10,10 @@
 	.author {
 		display: inline-flex;
 		align-items: baseline;
-		gap: clamp(.1em, 2vw, 0.5rem);
+		gap: clamp(0.1em, 2vw, 0.5rem);
 		font-family: 'Noto Sans', sans-serif;
 		font-weight: 100;
 		margin-bottom: 1.5rem;
-		color: #555;
 	}
 
 	.by {
@@ -24,6 +23,6 @@
 
 	.sig {
 		width: clamp(1rem, 25vw, 9rem);
-    transform: translateY(.1em);
+		transform: translateY(0.1em);
 	}
 </style>
