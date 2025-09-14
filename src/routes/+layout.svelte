@@ -101,8 +101,8 @@
     margin: 0;
     padding: 0;
     line-height: 1.6;
-    color: #333;
-    background-color: #f9f9f9;
+    color: #533737;
+    background-color: hsl(0 13% 98% / 1);
   }
   
   /* Global rule for clickable elements */

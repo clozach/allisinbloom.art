@@ -12,7 +12,7 @@
 
 <div class="poem">
   <PoemTitle>{title}</PoemTitle>
-  <Author>allisin bloom</Author>
+  <Author />
   <PoemContent>
     <slot />
   </PoemContent>
