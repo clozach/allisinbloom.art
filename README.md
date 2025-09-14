@@ -9,12 +9,9 @@ A collection of poems and prose, built with mdsvex and notion.
 - Vercel
 
 ## TODO
-- [x] Replace random poem loading with simple MVP of a single home page with no interactivity & the "opening in sight" poem inlined onto the home page.
-- [x] Add `actions` buttons from: https://www.figma.com/design/D9xiMh3Fno8hlA4eUtZjVu/allisin-bloom-allisinbloom.art?node-id=372-447&t=WJBUJ6VTgvAfCP14-11
-   - [x] Implement click handlers
-      - [x] To determine the routes navigated by clicking `another [>]` and `previously [<]`, load `route.txt`—a plaintext file with one route per line.
-   - [ ] Position & style another/previously buttons to match Figma:
-
+- [x] Add https://github.com/rohitpotato/svelte-command-palette with `another [>]` and `previously [<]` commands that respond to both `<`+`>` and `←`+`→` (left+right) arrow keys, with secret homerow keys to boot: `j`+`k`.
+- [ ] Remove the nav bar (and any associated documentation/styles/etc.)
+- [ ] Add the title of every poem in route.txt to the command palette.
 - [ ] (user-activity): populate the rest of the file & add more poems to flesh out the site some more.
 - [ ] Write scripts to push to a preview branch, then add an automation so it happens without effort on every commit
 
