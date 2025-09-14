@@ -12,9 +12,9 @@
 
 <div class="poem">
   <PoemTitle>{title}</PoemTitle>
-  <Author />
   <PoemContent>
     <slot />
   </PoemContent>
+  <Author />
 </div>
 

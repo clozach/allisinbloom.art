@@ -13,6 +13,7 @@
   .poem-content {
     line-height: 1.8;
     white-space: pre-line;
+    padding-top: 1.2rem;
   }
   
   /* Format code blocks properly */

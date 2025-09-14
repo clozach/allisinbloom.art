@@ -13,7 +13,7 @@
 		gap: clamp(0.1em, 2vw, 0.5rem);
 		font-family: 'Noto Sans', sans-serif;
 		font-weight: 100;
-		margin-bottom: 1.5rem;
+		padding-top: 3rem;
 	}
 
 	.by {
