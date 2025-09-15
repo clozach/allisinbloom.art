@@ -53,7 +53,7 @@ twirling face-up to the cycling sky
 
 <style>
   /* This poem has long lines! Reduce font size while keeping responsiveness */
-  p {
+  :global(.poem-container) {
     font-size: 0.7em; 
   }
 </style>
