@@ -24,10 +24,11 @@
 			1.5rem
 		);
 	}
-	/* ℹ️ To calculate a new color for the sig: https://codepen.io/sosuke/pen/Pjoqqp */
+	/* ℹ️ To calculate a new color for the sig: https://codepen.io/sosuke/pen/Pjoqqp
+	   (recipes live in the --sig-filter theme token in +layout.svelte) */
 	.sig {
 		width: clamp(1rem, 25vw, 9rem);
 		transform: translateY(0.1em);
-		filter: invert(21%) sepia(4%) saturate(3757%) hue-rotate(314deg) brightness(98%) contrast(88%);		
+		filter: var(--sig-filter);
 	}
 </style>

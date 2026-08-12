@@ -25,3 +25,6 @@ vite.config.ts.timestamp-*
 # TMP
 deactivated-routes
 test-results
+
+# Claude Code local permissions
+.claude/settings.local.json

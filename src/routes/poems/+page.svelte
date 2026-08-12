@@ -43,9 +43,9 @@
   
   .poem-item {
     padding: 1.5rem;
-    background-color: #fff;
+    background-color: var(--card-bg);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px var(--shadow);
     text-decoration: none;
     color: inherit;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -54,7 +54,7 @@
   
   .poem-item:hover {
     transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px var(--shadow);
   }
   
   .poem-item h2 {

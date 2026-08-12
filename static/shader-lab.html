@@ -1,0 +1,234 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>shader lab</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #hud {
+    position: fixed; top: 8px; left: 8px; z-index: 2;
+    font: 12px/1.4 monospace; color: #0f0; background: rgba(0,0,0,.55);
+    padding: 6px 8px; white-space: pre; pointer-events: none;
+  }
+  #err {
+    position: fixed; bottom: 0; left: 0; right: 0; max-height: 50vh; overflow: auto;
+    font: 11px/1.35 monospace; color: #f66; background: rgba(0,0,0,.85);
+    padding: 8px; white-space: pre-wrap; display: none; z-index: 3;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"></div>
+<pre id="err"></pre>
+
+<!-- ============ candidate shaders ============
+Contract per candidate:
+  const float LOOP_T = <seconds>;
+  vec3 render(vec2 fragCoord, vec2 res, float t, float dark);
+    - exactly LOOP_T-periodic in t; dark is 0.0 (light) or 1.0 (dark theme)
+No uniforms, no main() — the harness supplies those.
+URL params: ?c=g  &dark=1  &speed=N  &freeze=SECONDS  &seam=1 (stripe loop test)
+-->
+
+<script type="x-shader/candidate" id="cand-g">
+// Endless fractal blossoming: a cyclic scale-ladder about an origin.
+// Six layers of soft billow lobes; each layer's features grow continuously
+// (doubling every LOOP_T/6 seconds), fading in as fine grain and out as
+// they become vast — so watched stilly, every lobe keeps re-articulating
+// into finer lobes forever. All time terms are integer-frequency in
+// f = t/LOOP_T, so the loop is exact.
+
+const float LOOP_T = 720.0; // 6 layers x 120 s per doubling
+const float TAU = 6.28318530718;
+const float LN = 6.0; // ladder layers
+
+float hash2(vec2 p) {
+    p = 50.0 * fract(p * 0.3183099 + vec2(0.71, 0.113));
+    return fract(p.x * p.y * (p.x + p.y));
+}
+
+float vnoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 fr = fract(p);
+    vec2 u = fr * fr * (3.0 - 2.0 * fr);
+    float a = hash2(i);
+    float b = hash2(i + vec2(1.0, 0.0));
+    float c = hash2(i + vec2(0.0, 1.0));
+    float d = hash2(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+const mat2 M2 = mat2(0.80, 0.60, -0.60, 0.80);
+
+// Soft billow lobes: rounded cells with gentle creases between them.
+// Per-octave orbit churn at integer frequencies {1,2,3,5} -- glacial.
+float lobes(vec2 q, float f) {
+    float amp = 0.5;
+    float sum = 0.0;
+    float nrm = 0.0;
+    vec2 qq = q;
+    for (int i = 0; i < 4; i++) {
+        float kf = floor(exp2(float(i) * 0.78) + 0.5); // 1,2,3,5
+        float th = TAU * kf * f + float(i) * 2.4;
+        vec2 orb = 0.16 * vec2(cos(th), sin(th));
+        float n = vnoise(qq + orb);
+        sum += amp * abs(2.0 * n - 1.0);
+        nrm += amp;
+        amp *= 0.55;
+        qq = M2 * qq * 2.02;
+    }
+    return sum / nrm;
+}
+
+vec3 render(vec2 fragCoord, vec2 res, float t, float dark) {
+    float f = fract(t / LOOP_T); // the ONLY gateway for time
+    vec2 p = (fragCoord - vec2(0.5, 0.46) * res) / res.y;
+    float r = length(p);
+
+    // ---- the blossoming ladder ----
+    // Each layer draws organic contour filigree where its field crosses a
+    // level set: hairline lace when the layer is young and fine, broad soft
+    // bands as it grows -- so the ornament forever thickens, splits, and
+    // dissolves while new lace is born within it.
+    float ink = 0.0;   // filigree density
+    float body = 0.0;  // soft volume behind it
+    float wsum = 0.0;
+    for (int i = 0; i < 6; i++) {
+        float phase = fract(f + float(i) / LN);
+        float freq = exp2((1.0 - phase) * LN - 2.2); // ~13 .. ~0.22
+        float w = smoothstep(0.0, 0.30, phase) * (1.0 - smoothstep(0.70, 1.0, phase));
+        float unfold = 1.0 + 0.35 * phase;
+        vec2 q = p * freq / unfold;
+        float n = lobes(q + vec2(17.31, 9.77) * float(i), f);
+        // contour lace at two nested level sets of the same field
+        float c1 = 1.0 - smoothstep(0.0, 0.055, abs(n - 0.42));
+        float c2 = (1.0 - smoothstep(0.0, 0.035, abs(n - 0.62))) * 0.6;
+        ink += w * (c1 + c2);
+        body += w * n;
+        wsum += w;
+    }
+    ink = clamp(ink / (0.55 * wsum), 0.0, 1.0);
+    body = body / max(wsum, 1e-4);
+
+    // radial breath: a softly luminous core, lace densest in a wide bloom
+    // annulus around it, quieting toward the far edges
+    float core = exp(-r * r * 2.2);
+    float annulus = smoothstep(0.05, 0.28, r) * (1.0 - smoothstep(0.55, 1.05, r));
+    ink *= 0.35 + 0.65 * annulus;
+
+    float shade = smoothstep(0.15, 0.9, body); // gentle volume key
+
+    // ---- palettes, each clamped to its a11y band ----
+    // LIGHT: ground pearl, filigree sinks to the band floor (still >= 4.5:1
+    // under #533737 ink), mauve breath in the lace
+    vec3 Lground = mix(vec3(0.929, 0.914, 0.922), vec3(0.973, 0.965, 0.957), shade);
+    vec3 Llace   = mix(vec3(0.776, 0.749, 0.800), vec3(0.835, 0.769, 0.865), 0.5 + 0.5 * shade);
+    vec3 light = mix(Lground, Llace, ink);
+    light += vec3(0.014, 0.005, -0.004) * core;
+
+    // DARK: ground deep plum-black, filigree rises toward dusk mauve
+    // (ceiling still >= 4.5:1 under the cream ink)
+    vec3 Dground = mix(vec3(0.086, 0.067, 0.078), vec3(0.125, 0.098, 0.114), shade);
+    vec3 Dlace   = mix(vec3(0.239, 0.196, 0.263), vec3(0.318, 0.243, 0.365), 0.5 + 0.5 * shade);
+    vec3 darkc = mix(Dground, Dlace, ink);
+    darkc += vec3(0.012, 0.007, 0.014) * core;
+
+    return mix(light, darkc, dark);
+}
+
+</script>
+
+<script>
+const params = new URLSearchParams(location.search);
+const candKey = (params.get('c') || 'g').toLowerCase();
+const speed = parseFloat(params.get('speed') || '1');
+const freeze = params.has('freeze') ? parseFloat(params.get('freeze')) : null;
+const seam = params.get('seam') === '1';
+const dark = params.get('dark') === '1';
+
+const src = document.getElementById('cand-' + candKey);
+const err = document.getElementById('err');
+const hud = document.getElementById('hud');
+if (!src) { err.style.display = 'block'; err.textContent = 'no candidate ' + candKey; throw 0; }
+const candidate = src.textContent;
+const loopT = parseFloat((candidate.match(/LOOP_T\s*=\s*([0-9.]+)/) || [0, 'NaN'])[1]);
+
+const PRELUDE = `precision highp float;
+uniform vec2 u_res;
+uniform float u_rawtime;
+uniform float u_seam;
+uniform float u_dark;
+`;
+const POSTLUDE = `
+void main() {
+  float t = u_rawtime;
+  if (u_seam > 0.5 && mod(floor(gl_FragCoord.x / 48.0), 2.0) > 0.5) t += LOOP_T;
+  gl_FragColor = vec4(render(gl_FragCoord.xy, u_res, t, u_dark), 1.0);
+}
+`;
+const preludeLines = PRELUDE.split('\n').length;
+
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl', { antialias: false, alpha: false, depth: false });
+
+function compile(type, s) {
+  const sh = gl.createShader(type);
+  gl.shaderSource(sh, s);
+  gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+    const log = gl.getShaderInfoLog(sh);
+    err.style.display = 'block';
+    err.textContent = 'COMPILE ERROR (candidate ' + candKey + ', prelude is ' + preludeLines +
+      ' lines — subtract from ERROR line numbers):\n' + log;
+    return null;
+  }
+  return sh;
+}
+
+const vs = compile(gl.VERTEX_SHADER, 'attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }');
+const fs = compile(gl.FRAGMENT_SHADER, PRELUDE + candidate + POSTLUDE);
+if (vs && fs) {
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    err.style.display = 'block';
+    err.textContent = 'LINK ERROR: ' + gl.getProgramInfoLog(prog);
+  } else {
+    gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'p');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const uRes = gl.getUniformLocation(prog, 'u_res');
+    const uT = gl.getUniformLocation(prog, 'u_rawtime');
+    const uSeam = gl.getUniformLocation(prog, 'u_seam');
+    const uDark = gl.getUniformLocation(prog, 'u_dark');
+
+    let frames = 0, fps = 0, lastFpsAt = performance.now();
+    const t0 = performance.now();
+    function draw(now) {
+      requestAnimationFrame(draw);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
+      const t = freeze !== null ? freeze : ((now - t0) / 1000) * speed;
+      gl.uniform2f(uRes, w, h);
+      gl.uniform1f(uT, t);
+      gl.uniform1f(uSeam, seam ? 1 : 0);
+      gl.uniform1f(uDark, dark ? 1 : 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      frames++;
+      if (now - lastFpsAt > 1000) { fps = frames; frames = 0; lastFpsAt = now; }
+      hud.textContent = 'cand ' + candKey + (dark ? ' [DARK]' : ' [light]') + '  LOOP_T ' + loopT +
+        's  t ' + t.toFixed(2) + '  (t mod T) ' + (t % loopT).toFixed(2) + '  fps ' + fps +
+        (seam ? '  [SEAM STRIPE TEST]' : '');
+    }
+    requestAnimationFrame(draw);
+  }
+}
+</script>
+</body>
+</html>

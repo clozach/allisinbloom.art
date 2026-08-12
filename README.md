@@ -9,11 +9,52 @@ A collection of poems and prose, built with mdsvex and notion.
 - Vercel
 
 ## TODO
-- [x] Add https://github.com/rohitpotato/svelte-command-palette with `another [>]` and `previously [<]` commands that respond to both `<`+`>` and `←`+`→` (left+right) arrow keys, with secret homerow keys to boot: `j`+`k`.
-- [ ] Remove the nav bar (and any associated documentation/styles/etc.)
+- [ ] Configure navigation using `gelato` (https://github.com/bradistewart/gelato)
 - [ ] Add the title of every poem in route.txt to the command palette.
 - [ ] (user-activity): populate the rest of the file & add more poems to flesh out the site some more.
 - [ ] Write scripts to push to a preview branch, then add an automation so it happens without effort on every commit
+
+## Dark mode
+
+Theme tokens (`--bg`, `--ink`, `--accent`, `--hr`, `--card-bg`, `--sig-filter`, …) live
+in `src/routes/+layout.svelte`. Dark values apply via `prefers-color-scheme`, and
+`:root[data-theme='light'|'dark']` overrides beat the media query (used by the dev
+tuner; ready for a future manual toggle). Both ink-on-bg pairs hold ≥ 7:1 contrast.
+To test: flip the OS appearance, or use the tuner's theme select in dev.
+
+## Background shader ("endless fractal blossoming")
+
+**Off by default.** Poem pages mount `src/lib/components/BloomShader.svelte`, but no
+canvas is created (and no WebGL work happens) until the shader is switched on from
+the tuner panel — press `` ` `` on any poem page (dev *and* production; it's an
+easter egg now, not a dev-only tool) and flip the "shader" toggle at the top. The
+choice persists per-browser in `localStorage` (`bloom-tune-v1`).
+
+When enabled, the shader renders behind the text: a WebGL1
+fragment shader of contour filigree perpetually unfolding from an origin — six layers
+on a cyclic scale-ladder, each born as hairline lace and dissolving as broad bands
+(features double every `doubling` seconds). Every time term is an integer-frequency
+function of `t / loopT`, so the loop is bit-exact (verified by pixel-diff at `t` vs
+`t + loopT`). Both palettes are hard-coded inside their accessibility bands (≥ 4.5:1
+under each theme's ink), so no tuning knob can break text contrast.
+
+- **Tuner panel:** on any poem page, press `` ` `` to open the "bloom tuner" — the
+  shader on/off toggle, live sliders for every magic number, color pickers for the
+  palette gradient endpoints (ground A→B and lace A→B, per theme), a theme override
+  that flips the whole page, `copy values` (exports the current set to paste into
+  `DEFAULTS` in `BloomShader.svelte`), and `reset` (which also turns the shader back
+  off, since off is the default). Tweaks persist in `localStorage` (`bloom-tune-v1`).
+  The panel is `BloomTuner.svelte`, dynamic-imported on first summon so it ships as
+  its own lazy chunk, out of the main bundle. Note: the shipped palette sits inside
+  the a11y contrast bands, but the pickers can leave them — recheck contrast before
+  baking in new colors.
+- ⚠️ `.env` must NOT set `NODE_ENV` — Vite reads it and silently turns
+  `vite build` into a dev-mode build (bigger bundles, dev flags true). Removed
+  2026-07-29; keep it out.
+- `static/shader-lab.html` is the standalone iteration lab (`/shader-lab.html?c=g`,
+  `&dark=1`, `&speed=N`, `&freeze=S`, `&seam=1` for the loop stripe-test).
+- To test removal: delete `BloomShader.svelte`, `BloomTuner.svelte`, their
+  import/mount in `src/routes/+layout.svelte`, and `static/shader-lab.html`.
 
 ## Development
 

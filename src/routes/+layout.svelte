@@ -2,12 +2,12 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import PoemNav from '$lib/components/PoemNav.svelte';
+	import BloomShader from '$lib/components/BloomShader.svelte';
 
-	// Check if we're on the home page
-	$: isHomePage = $page.url.pathname === '/';
-
-	// Get routes from layout data
+	// Get routes and poem titles from layout data
 	$: routes = $page.data.routes || ['opening-in-sight'];
+	$: poemTitles = ($page.data.poemTitles || {}) as Record<string, string>;
 
 	// Determine current route from URL
 	$: currentRoute = getCurrentRoute($page.url.pathname);
@@ -17,12 +17,15 @@
 	$: validCurrentIndex = routes.length > 0 && currentIndex >= 0 ? currentIndex : 0;
 	$: hasPrevious = routes.length > 1 && validCurrentIndex > 0;
 	$: hasNext = routes.length > 1 && validCurrentIndex < routes.length - 1;
-	$: previousUrl = hasPrevious
-		? validCurrentIndex === 1
-			? '/'
-			: `/poems/${routes[validCurrentIndex - 1]}`
-		: null;
-	$: nextUrl = hasNext ? `/poems/${routes[validCurrentIndex + 1]}` : null;
+	$: previousSlug = hasPrevious ? routes[validCurrentIndex - 1] : null;
+	$: nextSlug = hasNext ? routes[validCurrentIndex + 1] : null;
+	$: previousUrl = previousSlug ? `/poems/${previousSlug}` : null;
+	$: nextUrl = nextSlug ? `/poems/${nextSlug}` : null;
+	$: previousTitle = previousSlug ? (poemTitles[previousSlug] || previousSlug.replace(/-/g, ' ')) : '';
+	$: nextTitle = nextSlug ? (poemTitles[nextSlug] || nextSlug.replace(/-/g, ' ')) : '';
+
+	// Check if current page is a poem (home or /poems/*)
+	$: isPoemPage = $page.url.pathname === '/' || $page.url.pathname.startsWith('/poems/');
 
 	function getCurrentRoute(pathname: string) {
 		if (pathname === '/') {
@@ -33,22 +36,21 @@
 	}
 
 	function handlePrevious() {
-		if (!hasPrevious) return;
-		if (previousUrl) {
-			goto(previousUrl);
-		}
+		if (previousUrl) goto(previousUrl);
 	}
 
 	function handleNext() {
-		if (!hasNext) return;
-		if (nextUrl) {
-			goto(nextUrl);
-		}
+		if (nextUrl) goto(nextUrl);
 	}
 
 	// Global keyboard navigation (ArrowLeft/Right and j/k)
 	onMount(() => {
 		const keyHandler = (e: KeyboardEvent) => {
+			if (!isPoemPage) return;
+			if (e.metaKey || e.ctrlKey || e.altKey) return;
+			const t = e.target as HTMLElement | null;
+			if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|AUDIO|VIDEO)$/.test(t.tagName)))
+				return;
 			if (e.key === 'ArrowLeft' || e.key === '<' || e.key === 'j' || e.key === ',') {
 				handlePrevious();
 			} else if (e.key === 'ArrowRight' || e.key === '>' || e.key === 'k' || e.key === '.') {
@@ -68,13 +70,73 @@
 	/>
 </svelte:head>
 
+{#if isPoemPage}
+	<BloomShader />
+{/if}
+
 <div class="app">
 	<main>
 		<slot />
+		{#if isPoemPage}
+			<PoemNav {previousUrl} {nextUrl} {previousTitle} {nextTitle} />
+		{/if}
 	</main>
 </div>
 
 <style>
+	/* Theme tokens: light is the canonical palette, dark mirrors it warmly.
+	   Both ink-on-bg pairs hold ≥ 7:1 (AAA) contrast. */
+	:global(:root) {
+		color-scheme: light dark;
+		--bg: hsl(0 13% 98%);
+		--ink: #533737;
+		--accent: #caa8d6;
+		--accent-strong: #b077c5;
+		--hr: #eeebe2;
+		--card-bg: #fff;
+		--shadow: rgb(0 0 0 / 0.1);
+		/* tint recipe for the signature png (see ByLine.svelte) */
+		--sig-filter: invert(21%) sepia(4%) saturate(3757%) hue-rotate(314deg) brightness(98%)
+			contrast(88%);
+	}
+	@media (prefers-color-scheme: dark) {
+		:global(:root) {
+			--bg: hsl(345 9% 11%);
+			--ink: hsl(9 25% 86%);
+			--accent: #d3b3e0;
+			--accent-strong: #e2c8ee;
+			--hr: #453a3e;
+			--card-bg: #2b2326;
+			--shadow: rgb(0 0 0 / 0.5);
+			--sig-filter: invert(88%) sepia(8%) saturate(300%) hue-rotate(314deg) brightness(102%)
+				contrast(90%);
+		}
+	}
+	/* explicit override hooks ([data-theme] beats the media query); used by
+	   the dev-only bloom tuner, available to any future manual theme toggle */
+	:global(:root[data-theme='light']) {
+		--bg: hsl(0 13% 98%);
+		--ink: #533737;
+		--accent: #caa8d6;
+		--accent-strong: #b077c5;
+		--hr: #eeebe2;
+		--card-bg: #fff;
+		--shadow: rgb(0 0 0 / 0.1);
+		--sig-filter: invert(21%) sepia(4%) saturate(3757%) hue-rotate(314deg) brightness(98%)
+			contrast(88%);
+	}
+	:global(:root[data-theme='dark']) {
+		--bg: hsl(345 9% 11%);
+		--ink: hsl(9 25% 86%);
+		--accent: #d3b3e0;
+		--accent-strong: #e2c8ee;
+		--hr: #453a3e;
+		--card-bg: #2b2326;
+		--shadow: rgb(0 0 0 / 0.5);
+		--sig-filter: invert(88%) sepia(8%) saturate(300%) hue-rotate(314deg) brightness(102%)
+			contrast(90%);
+	}
+
 	/* Typography and theme styles */
 	:global(body) {
 		margin: 0;
@@ -82,8 +144,8 @@
 		font-family: 'Noto Serif', 'Georgia', serif;
 		font-size: 1.2rem;
 		line-height: 1.6;
-		color: #533737;
-		background-color: hsl(0 13% 98% / 1);
+		color: var(--ink);
+		background-color: var(--bg);
 	}
 
 	/* Global rule for clickable elements */
@@ -101,7 +163,7 @@
 		width: 30%;
 		margin: 2rem auto;
 		border: none;
-		border-top: 2px dashed #eeebe2;
+		border-top: 2px dashed var(--hr);
 	}
 
 	/* Global link styles with decorative elements */
@@ -111,20 +173,20 @@
 	}
 	:global(a::after) {
 		content: 'º';
-		color: #caa8d6;
+		color: var(--accent);
 		margin-left: 0.15em;
 		font-size: 0.7em;
 		vertical-align: super;
 	}
 	:global(a:hover),
 	:global(a:hover::after) {
-		color: #caa8d6;
+		color: var(--accent);
 	}
 	:global(a:active),
 	:global(a:focus),
 	:global(a:active::after),
 	:global(a:focus::after) {
-		color: #b077c5;
+		color: var(--accent-strong);
 	}
 
 	.app {
