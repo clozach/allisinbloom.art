@@ -14,7 +14,7 @@ const dirnames = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
 dirnames.sort(); // Ensure deterministic output
 
-// Write the inventory file next to route.txt at the project root
+// Write the inventory file at the project root (the live poem list is static/route.txt)
 const outPath = path.join(rootDir, 'routes-inventory.txt');
 fs.writeFileSync(outPath, `${dirnames.join('\n')}\n`, 'utf8');
 

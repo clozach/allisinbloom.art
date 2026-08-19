@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-// Home redirects every visit to a random poem drawn from route.txt.
-const ROUTES = readFileSync(new URL('../route.txt', import.meta.url), 'utf8')
+// Home redirects every visit to a random poem drawn from static/route.txt.
+const ROUTES = readFileSync(new URL('../static/route.txt', import.meta.url), 'utf8')
   .split('\n')
   .map((r) => r.trim())
   .filter(Boolean);

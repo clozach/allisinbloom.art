@@ -10,7 +10,7 @@ A collection of poems and prose, built with mdsvex and notion.
 
 ## TODO
 - [ ] Configure navigation using `gelato` (https://github.com/bradistewart/gelato)
-- [ ] Add the title of every poem in route.txt to the command palette.
+- [ ] Add the title of every poem in static/route.txt to the command palette.
 - [ ] (user-activity): populate the rest of the file & add more poems to flesh out the site some more.
 - [ ] Write scripts to push to a preview branch, then add an automation so it happens without effort on every commit
 
