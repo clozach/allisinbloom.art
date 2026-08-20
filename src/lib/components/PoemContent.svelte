@@ -15,6 +15,12 @@
     white-space: pre-line;
     padding-top: 1.2rem;
   }
+
+  /* Stanza gaps: each markdown stanza compiles to its own <p>, and
+     global.css's `* { margin: 0 }` reset would otherwise fuse them. */
+  .poem-content :global(p) {
+    margin: 1em 0;
+  }
   
   /* Format code blocks properly */
   .poem-content :global(pre),

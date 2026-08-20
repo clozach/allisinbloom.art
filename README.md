@@ -56,6 +56,23 @@ under each theme's ink), so no tuning knob can break text contrast.
 - To test removal: delete `BloomShader.svelte`, `BloomTuner.svelte`, their
   import/mount in `src/routes/+layout.svelte`, and `static/shader-lab.html`.
 
+## Mobile testing (before every push)
+
+The dev server always listens on the LAN (`server.host: true` in
+`vite.config.js`), so any phone on the same Wi-Fi can load it live, HMR
+included — no build, no deploy:
+
+- **iPhone:** `http://temps-macbook-pro.local:5199` (Bonjour name; survives
+  DHCP address changes). If `.local` ever fails, use the Mac's IP, e.g.
+  `http://192.168.1.146:5199`.
+- The port is whatever the dev server was started with (`5199` via the
+  `allisinbloom-dev` launcher; bare `pnpm run dev` defaults to `5173`).
+
+Check a poem on the phone (stanza gaps, nav, type size) before pushing —
+the July-2025→Aug-2026 publish freeze hid a year of design drift, and
+mobile is where this site is mostly read. Note the LAN exposure: anyone on
+the same Wi-Fi can see the dev site while the server runs.
+
 ## Development
 
 This project is powered by [`sv`](https://github.com/sveltejs/cli) (SvelteKit).
