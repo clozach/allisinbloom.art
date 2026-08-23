@@ -62,9 +62,13 @@ The dev server always listens on the LAN (`server.host: true` in
 `vite.config.js`), so any phone on the same Wi-Fi can load it live, HMR
 included — no build, no deploy:
 
-- **iPhone:** `http://temps-macbook-pro.local:5199` (Bonjour name; survives
-  DHCP address changes). If `.local` ever fails, use the "Network" URL vite
-  prints (`just agent-logs`), e.g. `http://192.168.1.145:5199`.
+- **iPhone:** **`http://t.local:5199`** — `t` (for *test*) is the vault-wide
+  Bonjour alias for this Mac, advertised by the always-on `amaanah.tlocal`
+  agent (dot-to-dot `bin/t-local`), so it survives DHCP address changes and
+  hostname renames. `vite.config.js` allow-lists `.local` names (vite's
+  DNS-rebinding guard otherwise answers "Blocked request"). Fallbacks: the
+  Mac's own name `http://temps-macbook-pro.local:5199`, or the "Network" URL
+  vite prints (`just agent-logs`).
 - `5199` is the always-on server (below). A bare `pnpm run dev` starts a
   second, throwaway instance on `5173`.
 
