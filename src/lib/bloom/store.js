@@ -1,8 +1,8 @@
 // Per-poem persistence for the bloom: the first render of a poem rolls a
 // seed, generates its tune, and stores both under `bloom-page-v1:<slug>`, so
 // the same visitor sees the same blot every time they return to that poem.
-// Edits and dice rolls live in a `current` layer beside the seed; "revert"
-// drops that layer. A test pins a page by storing `{ seed }` alone.
+// Edits, die rolls and pasted sets live in a `current` layer beside the
+// seed; "revert" drops that layer. A test pins a page by storing `{ seed }` alone.
 //
 // Visibility lives apart, site-wide: `bloom-prefs-v1` = { shaderOn, animate }.
 import { generateTune, randomSeed } from './generate.js';
@@ -10,7 +10,7 @@ import { generateTune, randomSeed } from './generate.js';
 export const PREFS_KEY = 'bloom-prefs-v1';
 const LEGACY_KEY = 'bloom-tune-v1'; // pre-2026-08-23 single global blob
 
-export const PREFS_DEFAULTS = { shaderOn: true, animate: false };
+export const PREFS_DEFAULTS = { shaderOn: false, animate: false };
 
 /** @param {string} slug */
 export const pageKey = (slug) => `bloom-page-v1:${slug}`;
@@ -37,9 +37,6 @@ export function loadPrefs() {
 export function savePrefs(prefs) {
   if (hasStorage()) localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
 }
-
-/** Motion-only knobs — the "animate" dice rerolls just these. */
-export const MOTION_KEYS = ['speed', 'doubling'];
 
 /** @param {Record<string, any>} tune */
 const stripSeed = ({ seed: _seed, ...rest }) => rest;
@@ -80,18 +77,48 @@ export function revertPage(slug) {
 }
 
 /**
- * Dice: reroll one subset of knobs into the current layer, leaving the rest
- * (and the page's default seed) untouched.
- * @param {string} slug @param {Record<string, any>} tune
- * @param {'motion' | 'still'} part
+ * The die: a whole new blot (every knob + both palettes) into the page's
+ * current layer. The default seed stays, so revert still works.
+ * @param {string} slug @param {number} seed the page's default seed
  */
-export function rollPart(slug, tune, part) {
-  const rolled = generateTune(randomSeed());
-  const next = { ...tune };
-  for (const k of Object.keys(rolled)) {
-    const isMotion = MOTION_KEYS.includes(k);
-    if ((part === 'motion') === isMotion) next[k] = rolled[k];
+export function rollPage(slug, seed) {
+  const next = { ...generateTune(randomSeed()), seed };
+  savePage(slug, next);
+  return next;
+}
+
+/** Every key a pasted set may carry (numbers + palette hexes) — no seed. */
+export const TUNE_KEYS = Object.keys(generateTune(0));
+
+/**
+ * Paste: accept a set copied from another browser (or a friend's) and make
+ * it this page's current values. Only known keys are taken; numbers must be
+ * finite, colors must be #rrggbb; the pasted seed (if any) is ignored so
+ * revert still returns to THIS page's own blot. Returns null when the text
+ * isn't a bloom set at all.
+ * @param {string} slug @param {Record<string, any>} tune @param {string} text
+ */
+export function pasteValues(slug, tune, text) {
+  /** @type {any} */
+  let obj;
+  try {
+    obj = JSON.parse(text);
+  } catch {
+    return null;
   }
+  if (!obj || typeof obj !== 'object') return null;
+  const next = { ...tune };
+  let taken = 0;
+  for (const k of TUNE_KEYS) {
+    if (!(k in obj)) continue;
+    const v = obj[k];
+    const isColor = typeof tune[k] === 'string';
+    if (isColor ? /^#[0-9a-f]{6}$/i.test(v) : typeof v === 'number' && Number.isFinite(v)) {
+      next[k] = isColor ? v.toLowerCase() : v;
+      taken++;
+    }
+  }
+  if (!taken) return null;
   savePage(slug, next);
   return next;
 }

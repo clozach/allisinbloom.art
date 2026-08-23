@@ -9,8 +9,10 @@ const ROUTES = readFileSync(new URL('../static/route.txt', import.meta.url), 'ut
 
 // Pin a poem's bloom seed before the app boots: the generator is
 // deterministic, so `{ seed }` alone reproduces the whole tune.
-const seedPage = ({ slug, seed }: { slug: string; seed: number }) =>
+const seedPage = ({ slug, seed }: { slug: string; seed: number }) => {
   localStorage.setItem(`bloom-page-v1:${slug}`, JSON.stringify({ seed }));
+  localStorage.setItem('bloom-prefs-v1', JSON.stringify({ shaderOn: true, animate: false }));
+};
 
 // keep the GL buffer readable after the frame so a test can hash it
 const keepBuffer = () => {
@@ -44,13 +46,14 @@ test.describe('Home redirects to a poem', () => {
     expect(ROUTES).toContain(slug);
   });
 
-  test('poem page renders its text over a (still) bloom by default', async ({ page }) => {
+  test('poem page renders its text with the shader off by default', async ({ page }) => {
     await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
     await expect(page.locator('main')).toBeVisible();
-    // Shader ships ON, animation OFF: a canvas is there, its clock frozen
-    await expect(page.locator('canvas')).toHaveCount(1);
-    const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('bloom-prefs-v1') || '{}'));
-    expect(prefs.animate ?? false).toBe(false);
+    // Shader ships OFF: no canvas until the tuner easter egg enables it.
+    // The page's seed is still rolled + stored on first render.
+    await expect(page.locator('canvas')).toHaveCount(0);
+    const rec = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), `bloom-page-v1:${ROUTES[0]}`);
+    expect(typeof rec.seed).toBe('number');
   });
 
   // Stanza breaks are load-bearing: every blank line in a poem's source must
@@ -200,6 +203,7 @@ test.describe('Bloom shader anchoring', () => {
 // persisted per page; a pinned seed reproduces the frame bit-for-bit.
 test.describe('Per-poem seeded bloom', () => {
   test('first visit rolls + stores a seed; the same seed survives reload', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('bloom-prefs-v1', JSON.stringify({ shaderOn: true })));
     await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
     const key = `bloom-page-v1:${ROUTES[0]}`;
     const rec = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
@@ -211,6 +215,7 @@ test.describe('Per-poem seeded bloom', () => {
   });
 
   test('two poems roll different seeds', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('bloom-prefs-v1', JSON.stringify({ shaderOn: true })));
     await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
     await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
     const seeds = await page.evaluate((slugs) =>
@@ -236,27 +241,28 @@ test.describe('Per-poem seeded bloom', () => {
     expect(await frame(8)).not.toBe(a);
   });
 
-  test('tuner nests shader ▸ animate ▸ motion sliders; dice + revert act on this poem only', async ({ page }) => {
-    await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
+  test('tuner nests shader ▸ animate ▸ motion fields; die + revert act on this poem only', async ({ page }) => {
     await page.addInitScript(seedPage, { slug: ROUTES[0], seed: 7 });
+    await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
     await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
     await page.keyboard.press('`');
     const tuner = page.locator('.tuner');
     await expect(tuner).toBeVisible();
-    const rowLabels = () => tuner.locator('.row span').allTextContents();
-    let labels = await rowLabels();
-    expect(labels).toContain('animate');
-    expect(labels).not.toContain('time multiplier'); // hidden while animate is off
-    expect(labels).toContain('moment in the loop');
+    const labels = () => tuner.locator('.row span, .field .lbl').allTextContents();
+    let l = await labels();
+    expect(l).toContain('animate');
+    expect(l).not.toContain('time multiplier'); // hidden while animate is off
+    expect(l).toContain('moment in the loop');
     await tuner.getByText('animate', { exact: true }).click();
-    labels = await rowLabels();
-    expect(labels).toContain('time multiplier');
-    expect(labels).toContain('seconds per doubling');
-    // shader off hides everything beneath it
+    l = await labels();
+    expect(l).toContain('time multiplier');
+    expect(l).toContain('seconds per doubling');
+    // shader off hides everything beneath it (the die included)
     await tuner.getByText('shader', { exact: true }).click();
-    labels = await rowLabels();
-    expect(labels).not.toContain('animate');
-    expect(labels).not.toContain('moment in the loop');
+    l = await labels();
+    expect(l).not.toContain('animate');
+    expect(l).not.toContain('moment in the loop');
+    await expect(tuner.getByRole('button', { name: 'Reroll this poem' })).toHaveCount(0);
     await expect(page.locator('canvas')).toHaveCount(0);
     await tuner.getByText('shader', { exact: true }).click();
     await expect(page.locator('canvas')).toHaveCount(1);
@@ -264,24 +270,16 @@ test.describe('Per-poem seeded bloom', () => {
     const record = (slug: string) =>
       page.evaluate((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}'), slug);
     const born = await record(ROUTES[0]);
-    expect(born.seed).toBe(7);
-    expect(born.current).toBeUndefined(); // pinned page, untouched: no edited layer
+    expect(born).toEqual({ seed: 7 }); // pinned page, untouched: no edited layer
     const otherBefore = await record(ROUTES[1]);
 
-    // motion dice: only speed/doubling move, seed stays
-    await tuner.getByRole('button', { name: "Reroll this poem's motion" }).click();
+    // the one die: everything rerolls into the current layer; seed stays
+    await tuner.getByRole('button', { name: 'Reroll this poem' }).click();
     let rec = await record(ROUTES[0]);
     expect(rec.seed).toBe(7);
     expect(rec.current).toBeTruthy();
-    const after = rec.current;
-    expect([after.speed, after.doubling]).not.toEqual([born.speed, born.doubling]);
-    // blot dice: still knobs + palette move, motion keeps its last roll
-    await tuner.getByRole('button', { name: "Reroll this poem's blot" }).click();
-    rec = await record(ROUTES[0]);
-    expect(rec.seed).toBe(7);
-    expect([rec.current.speed, rec.current.doubling]).toEqual([after.speed, after.doubling]);
-    expect(rec.current.lightGroundA).not.toBe(after.lightGroundA);
-    expect(rec.current.zoom).not.toBe(after.zoom);
+    expect(typeof rec.current.speed).toBe('number'); // motion knobs roll too
+    expect(typeof rec.current.lightGroundA).toBe('string');
     // revert: the edited layer is gone, the default seed remains
     await tuner.getByRole('button', { name: 'revert' }).click();
     rec = await record(ROUTES[0]);
@@ -289,5 +287,79 @@ test.describe('Per-poem seeded bloom', () => {
     await expect(tuner.locator('.group').first()).toHaveText('this poem · seed 7');
     // the other poem never changed
     expect(await record(ROUTES[1])).toEqual(otherBefore);
+  });
+
+  // Figma-style fields: click to type, ↑/↓ to nudge, drag the icon to scrub
+  test('number fields: type, nudge, scrub', async ({ page }) => {
+    await page.addInitScript(seedPage, { slug: ROUTES[0], seed: 7 });
+    await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
+    await page.keyboard.press('`');
+    const field = page.locator('.field', { hasText: 'overall scale' });
+    const input = field.locator('input');
+    const current = () =>
+      page.evaluate((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}').current?.zoom, ROUTES[0]);
+    // type (with junk) → cleaned, clamped, unit re-rendered
+    await input.click();
+    await input.fill('2.5 banana');
+    await input.press('Enter');
+    await expect(input).toHaveValue('2.5×');
+    expect(await current()).toBe(2.5);
+    // nudge: ↑ = +step (0.01), ⇧↑ = ×10
+    await input.press('ArrowUp');
+    await expect(input).toHaveValue('2.51×');
+    await input.press('Shift+ArrowUp');
+    await expect(input).toHaveValue('2.61×');
+    // Esc reverts an unsubmitted edit
+    await input.fill('9');
+    await input.press('Escape');
+    await expect(input).toHaveValue('2.61×');
+    // scrub: drag the icon 50px right → +50 × 0.01
+    const knob = field.locator('.knob');
+    const box = await knob.boundingBox();
+    if (!box) throw new Error('no knob');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await expect(input).toHaveValue('3.11×');
+    expect(await current()).toBe(3.11);
+    // a typed value never leaks into the page's j/k poem navigation
+    expect(new URL(page.url()).pathname).toBe(`/poems/${ROUTES[0]}`);
+  });
+
+  // copy values → paste (anywhere, panel open) replaces this page's values:
+  // the MVP sharing path, kept working whatever else ships
+  test('pasting a copied set takes it on; junk is refused', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.addInitScript(seedPage, { slug: ROUTES[0], seed: 7 });
+    await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
+    await page.keyboard.press('`');
+    const tuner = page.locator('.tuner');
+    const friend = { zoom: 1.234, lightGroundA: '#ABCDEF', seed: 999, bogus: 1, speed: 'fast' };
+    // a real paste: clipboard → ⌘V/^V with nothing editable focused
+    const fire = async (text: string) => {
+      await page.evaluate((t) => navigator.clipboard.writeText(t), text);
+      await page.locator('body').click({ position: { x: 5, y: 5 } });
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+V' : 'Control+V');
+    };
+    await fire(JSON.stringify(friend));
+    await expect(tuner.getByRole('button', { name: 'pasted!' })).toBeVisible();
+    const rec = await page.evaluate((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}'), ROUTES[0]);
+    expect(rec.seed).toBe(7); // the friend's seed is not taken
+    expect(rec.current.zoom).toBe(1.234);
+    expect(rec.current.lightGroundA).toBe('#abcdef');
+    expect(typeof rec.current.speed).toBe('number'); // bad type ignored
+    expect(rec.current.bogus).toBeUndefined();
+    await expect(page.locator('.field', { hasText: 'overall scale' }).locator('input')).toHaveValue('1.23×');
+    // copy values emits JSON that round-trips
+    await tuner.getByRole('button', { name: 'copy values' }).click();
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(JSON.parse(copied).zoom).toBe(1.234);
+    // not a set → refused, values untouched
+    await fire('{"hello":"world"}');
+    await expect(tuner.getByRole('button', { name: 'not a bloom set' })).toBeVisible();
+    await fire('plain text');
+    const after = await page.evaluate((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}'), ROUTES[0]);
+    expect(after.current.zoom).toBe(1.234);
   });
 });

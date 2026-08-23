@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadPrefs, savePrefs, loadPage, savePage, revertPage, rollPart } from '$lib/bloom/store.js';
+  import { loadPrefs, savePrefs, loadPage, savePage, revertPage, rollPage, pasteValues } from '$lib/bloom/store.js';
 
   /** the poem this page shows — its bloom is seeded + persisted per slug */
   export let slug = '';
@@ -54,7 +54,7 @@
   // Every magic number in the shader is generated per poem from a seed
   // (src/lib/bloom/generate.js) and persisted per page (store.js); the
   // tuner panel (press ` on a poem page) live-edits this page's values.
-  // Visibility is site-wide: `prefs.shaderOn` shows the bloom (default on),
+  // Visibility is site-wide: `prefs.shaderOn` shows the bloom (default off),
   // `prefs.animate` lets its clock run (default off → a still blot).
   // uniform name -> tune key for the palette endpoint colors
   const COLOR_UNIFORMS = {
@@ -111,11 +111,19 @@
     tune = revertPage(slug);
     kick();
   }
-  /** dice: reroll the blot ('still') or just the motion knobs ('motion') */
-  /** @param {'still' | 'motion'} part */
-  function roll(part) {
-    tune = rollPart(slug, tune, part);
+  /** the die: a whole new blot for this poem (motion knobs included — they show once animate is on) */
+  function roll() {
+    tune = rollPage(slug, tune.seed);
     kick();
+  }
+  /** a copied set, pasted while the panel is open → this page's values */
+  /** @param {string} text @returns {boolean} */
+  function paste(text) {
+    const next = pasteValues(slug, tune, text);
+    if (!next) return false;
+    tune = next;
+    kick();
+    return true;
   }
 
   const VERT = `
@@ -536,6 +544,7 @@ void main() {
     {applyTheme}
     {revert}
     {roll}
+    {paste}
     onClose={closePanel}
   />
 {/if}

@@ -2,24 +2,30 @@
   // Easter-egg control panel for BloomShader (summoned with ` on a poem
   // page). Ships to production as its own lazy chunk. Nesting: the
   // "shader" toggle reveals this poem's knobs; "animate" (off by default)
-  // reveals the motion-only knobs beneath it.
+  // reveals the motion-only knobs beneath it. Fields follow the vault's
+  // propsheet contract (label above; drag the icon to scrub, click to type).
+  import { onMount } from 'svelte';
+  import NumberField from './NumberField.svelte';
+
+  // step = per-px scrub step and ↑/↓ nudge; decimals follow from it
   const PARAMS = [
-    { key: 'speed', label: 'time multiplier', min: 0, max: 60, step: 0.5, motion: true },
-    { key: 'doubling', label: 'seconds per doubling', min: 10, max: 300, step: 1, motion: true },
-    { key: 'phase', label: 'moment in the loop', min: 0, max: 1, step: 0.001 },
-    { key: 'zoom', label: 'overall scale', min: 0.5, max: 4, step: 0.05 },
-    { key: 'unfold', label: 'outward drift per layer age', min: 0, max: 1, step: 0.01 },
-    { key: 'churn', label: 'morph orbit radius', min: 0, max: 0.5, step: 0.01 },
-    { key: 'lw1', label: 'lace width A', min: 0.005, max: 0.15, step: 0.005 },
-    { key: 'lw2', label: 'lace width B', min: 0.005, max: 0.15, step: 0.005 },
-    { key: 'lv1', label: 'lace level A', min: 0.2, max: 0.8, step: 0.01 },
-    { key: 'lv2', label: 'lace level B', min: 0.2, max: 0.9, step: 0.01 },
-    { key: 'inkGain', label: 'lace density', min: 0.5, max: 4, step: 0.05 },
-    { key: 'inkFloor', label: 'lace floor outside annulus', min: 0, max: 1, step: 0.05 },
-    { key: 'annA', label: 'bloom annulus inner', min: 0.05, max: 0.6, step: 0.01 },
-    { key: 'annB', label: 'bloom annulus outer', min: 0.3, max: 1.5, step: 0.05 },
-    { key: 'originX', label: 'origin x', min: 0, max: 1, step: 0.01 },
-    { key: 'originY', label: 'origin y', min: 0, max: 1, step: 0.01 },
+    { key: 'speed', label: 'time multiplier', unit: '×', icon: 'speed', min: 0, max: 60, step: 0.05, motion: true },
+    { key: 'doubling', label: 'seconds per doubling', unit: 's', icon: 'duration', min: 10, max: 300, step: 1, motion: true },
+    { key: 'phase', label: 'moment in the loop', unit: '', icon: 'duration', min: 0, max: 1, step: 0.001 },
+    { key: 'zoom', label: 'overall scale', unit: '×', icon: 'scale', min: 0.5, max: 4, step: 0.01 },
+    { key: 'unfold', label: 'outward drift per layer age', unit: '', icon: 'ratio', min: 0, max: 1, step: 0.005 },
+    { key: 'churn', label: 'morph orbit radius', unit: '', icon: 'ratio', min: 0, max: 0.5, step: 0.002 },
+    { key: 'lw1', label: 'lace width A', unit: '', icon: 'distance', min: 0.005, max: 0.15, step: 0.001 },
+    { key: 'lw2', label: 'lace width B', unit: '', icon: 'distance', min: 0.005, max: 0.15, step: 0.001 },
+    { key: 'lv1', label: 'lace level A', unit: '', icon: 'height', min: 0.2, max: 0.8, step: 0.002 },
+    { key: 'lv2', label: 'lace level B', unit: '', icon: 'height', min: 0.2, max: 0.9, step: 0.002 },
+    { key: 'inkGain', label: 'lace density', unit: '', icon: 'ratio', min: 0.5, max: 4, step: 0.01 },
+    { key: 'inkFloor', label: 'lace floor outside annulus', unit: '', icon: 'ratio', min: 0, max: 1, step: 0.005 },
+    { key: 'annA', label: 'bloom annulus inner', unit: '', icon: 'distance', min: 0.05, max: 0.6, step: 0.002 },
+    { key: 'annB', label: 'bloom annulus outer', unit: '', icon: 'distance', min: 0.3, max: 1.5, step: 0.005 },
+    { key: 'core', label: 'core glow', unit: '', icon: 'ratio', min: 0.5, max: 5, step: 0.01 },
+    { key: 'originX', label: 'origin x', unit: '', icon: 'position', min: 0, max: 1, step: 0.002 },
+    { key: 'originY', label: 'origin y', unit: '', icon: 'position', min: 0, max: 1, step: 0.002 },
   ];
 
   // palette gradient endpoints, picker pairs (A -> B)
@@ -51,23 +57,52 @@
   export let onPrefs;
   export let applyTheme;
   export let revert;
-  /** @type {(part: 'still' | 'motion') => void} */
+  /** @type {() => void} */
   export let roll;
-
-  $: visibleParams = PARAMS.filter((p) => !p.motion || prefs.animate);
+  /** @type {(text: string) => boolean} */
+  export let paste;
   /** @type {() => void} */
   export let onClose = () => {};
 
-  let copied = false;
+  $: visibleParams = PARAMS.filter((p) => !p.motion || prefs.animate);
 
-  async function copyTune() {
-    const lines = Object.entries(tune)
-      .map(([k, v]) => `  ${k}: ${JSON.stringify(v)},`)
-      .join('\n');
-    await navigator.clipboard.writeText(`{\n${lines}\n}`);
-    copied = true;
-    setTimeout(() => (copied = false), 1200);
+  let flash = '';
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let flashTimer;
+  /** @param {string} msg */
+  function say(msg) {
+    flash = msg;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => (flash = ''), 1400);
   }
+
+  // copy emits JSON so the same text pastes back (here, or in a friend's
+  // browser with the panel open) and becomes that page's values
+  async function copyTune() {
+    const text = JSON.stringify(tune, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      say('copied!');
+    } catch {
+      say('');
+    }
+  }
+
+  // paste anywhere while the panel is open (not into a text field) applies
+  // a copied set — the MVP sharing path, kept working whatever else ships
+  onMount(() => {
+    /** @param {ClipboardEvent} e */
+    const onPaste = (e) => {
+      const t = /** @type {HTMLElement | null} */ (e.target);
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA)$/.test(t.tagName))) return;
+      const text = e.clipboardData?.getData('text') || '';
+      if (!text.trim().startsWith('{')) return;
+      e.preventDefault();
+      say(paste(text) ? 'pasted!' : 'not a bloom set');
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  });
 </script>
 
 <div class="tuner">
@@ -83,19 +118,17 @@
     <label class="cell"><span>shader</span><input type="checkbox" bind:checked={prefs.shaderOn} on:change={onPrefs} /></label>
     <span class="dice-cell">
       {#if prefs.shaderOn}
-        <button class="dice" type="button" aria-label="Reroll this poem's blot" title="reroll the blot" on:click={() => roll('still')}>🎲</button>
+        <button class="dice" type="button" aria-label="Reroll this poem" title="a new blot for this poem" on:click={roll}>🎲</button>
       {/if}
     </span>
     <code>{prefs.shaderOn ? 'on' : 'off'}</code>
   </div>
   {#if prefs.shaderOn}
-    <div class="row nested">
-      <label class="cell"><span>animate</span><input type="checkbox" bind:checked={prefs.animate} on:change={onPrefs} /></label>
-      <span class="dice-cell">
-        <button class="dice" type="button" aria-label="Reroll this poem's motion" title="reroll the motion" on:click={() => roll('motion')}>🎲</button>
-      </span>
+    <label class="row nested">
+      <span>animate</span>
+      <input type="checkbox" bind:checked={prefs.animate} on:change={onPrefs} />
       <code>{prefs.animate ? 'on' : 'off'}</code>
-    </div>
+    </label>
   {/if}
   <label class="row">
     <span>theme</span>
@@ -107,20 +140,20 @@
   </label>
   {#if prefs.shaderOn}
     <div class="group">this poem · seed {tune.seed}</div>
-    {#each visibleParams as p (p.key)}
-      <label class="row" class:nested={p.motion}>
-        <span>{p.label}</span>
-        <input
-          type="range"
+    <div class="fields">
+      {#each visibleParams as p (p.key)}
+        <NumberField
+          label={p.label}
+          unit={p.unit}
+          icon={p.icon}
           min={p.min}
           max={p.max}
           step={p.step}
           bind:value={tune[p.key]}
-          on:input={onTweak}
+          onChange={onTweak}
         />
-        <code>{tune[p.key]}</code>
-      </label>
-    {/each}
+      {/each}
+    </div>
     {#each COLOR_GROUPS as g (g.title)}
       <div class="group">{g.title}</div>
       {#each g.rows as row (row.a)}
@@ -131,11 +164,11 @@
         </div>
       {/each}
     {/each}
-    <div class="note">🎲 rerolls into this poem's edits; revert returns to the blot it was born with.</div>
+    <div class="note">drag an icon to scrub, click a number to type. 🎲 rolls a new blot; revert returns to the one this poem was born with. paste a copied set (⌘V with the panel open) to take it on.</div>
     <div class="note">generated palettes clear 4.5:1 against the ink — the pickers can't promise that; recheck before keeping a hand-picked color</div>
   {/if}
   <div class="tuner-actions">
-    <button on:click={copyTune}>{copied ? 'copied!' : 'copy values'}</button>
+    <button on:click={copyTune}>{flash || 'copy values'}</button>
     <button on:click={revert}>revert</button>
   </div>
 </div>
@@ -231,9 +264,11 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
-  .row input[type='range'] {
-    width: 110px;
-    accent-color: #caa8d6;
+  .fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 8px;
+    margin: 4px 0;
   }
   .row input[type='checkbox'] {
     justify-self: start;

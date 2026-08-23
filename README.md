@@ -24,7 +24,7 @@ To test: flip the OS appearance, or use the tuner's theme select in dev.
 
 ## Background shader ("endless fractal blossoming")
 
-**On by default, as a still, seeded per poem** (2026-08-23). Poem pages mount
+**Off by default; seeded per poem** (2026-08-23). Poem pages mount
 `src/lib/components/BloomShader.svelte`. The first render of a poem rolls a 32-bit
 seed, generates every shader knob and both palettes from it
 (`src/lib/bloom/generate.js`, pure + deterministic), and stores the lot under
@@ -32,8 +32,8 @@ seed, generates every shader knob and both palettes from it
 its own hand-made sheet, and a returning visitor sees the same sheet. The record is
 `{ seed, current? }`: the seed is the page's **write-once default** (never rewritten
 unless the visitor clears site data); `current` is its edited layer — slider tweaks
-and 🎲 rolls — and **revert** deletes that layer. Site-wide
-visibility lives apart in `bloom-prefs-v1` `{ shaderOn: true, animate: false }`: the
+🎲 rolls and pasted sets — and **revert** deletes that layer. Site-wide
+visibility lives apart in `bloom-prefs-v1` `{ shaderOn: false, animate: false }`: the
 nesting is shader-visible? ▸ shader-animated? — with `animate` off the clock is
 frozen at the page's generated `phase` (a still blot); on, it runs from there.
 Reduced-motion always forces a still. (The pre-2026-08-23 single global blob
@@ -61,13 +61,20 @@ function of `t / loopT`, so the loop is bit-exact (verified by pixel-diff at `t`
   the bottom-left corner of the screen** (an invisible 56 px hotspot; hold ~0.6 s
   without moving) — to open the "bloom tuner"; ✕ closes it. Rows: `shader` (site-wide),
   `animate` nested under it (site-wide, hides the motion sliders `time multiplier` /
-  `seconds per doubling` while off) — each row carries a 🎲: the shader die rerolls
-  this poem's blot (every still knob + both palettes), the animate die rerolls only
-  its motion knobs, both into the page's `current` layer — then `theme` override,
-  **this poem · seed N** with live sliders for every knob (incl. `moment in the loop`)
-  and color pickers for the palette endpoints, `copy values` (exports this page's set
-  incl. seed) and `revert` (back to the seed's generated blot). The panel grows to the
-  viewport height before it scrolls. It is `BloomTuner.svelte`, dynamic-imported on first
+  `seconds per doubling` while off; the values are still generated and rolled, just
+  hidden), one 🎲 beside `shader` that rerolls this poem's whole blot into its
+  `current` layer, `theme` override, then **this poem · seed N** with a **field per
+  knob** following the vault's propsheet contract (`NumberField.svelte`: label above;
+  `[icon][value+unit]`; drag the icon to scrub — Pointer Lock wraps the cursor where
+  allowed, touch-drag on phones; click/Tab to type, ↑/↓ nudge by step, ⇧ ×10, Enter/blur
+  submit with junk stripped, Esc reverts; glyphs in `src/lib/bloom/icons.js`, mirrored
+  from amaanah `projects/pixel-reveal/src/component/icons.js`), color pickers for the
+  palette endpoints, `copy values` (JSON of this page's set) and `revert`. **Paste**
+  (⌘V anywhere while the panel is open, not into a field) takes a copied set on as
+  this page's values — the MVP sharing path: send a friend your `copy values` text and
+  their view matches yours; their seed stays theirs so their revert still works; the
+  button flashes `pasted!` or `not a bloom set`. The panel grows to the viewport height
+  before it scrolls. It is `BloomTuner.svelte`, dynamic-imported on first
   summon so it ships as its own lazy chunk.
 - ⚠️ `.env` must NOT set `NODE_ENV` — Vite reads it and silently turns
   `vite build` into a dev-mode build (bigger bundles, dev flags true). Removed
@@ -75,7 +82,7 @@ function of `t / loopT`, so the loop is bit-exact (verified by pixel-diff at `t`
 - `static/shader-lab.html` is the standalone iteration lab (`/shader-lab.html?c=g`,
   `&dark=1`, `&speed=N`, `&freeze=S`, `&seam=1` for the loop stripe-test).
 - Tests: `pnpm test:unit` (generator) and `pnpm test:e2e` (Playwright).
-- To test removal: delete `BloomShader.svelte`, `BloomTuner.svelte`, `src/lib/bloom/`,
+- To test removal: delete `BloomShader.svelte`, `BloomTuner.svelte`, `NumberField.svelte`, `src/lib/bloom/`,
   `tests/unit/`, their import/mount in `src/routes/+layout.svelte`, and
   `static/shader-lab.html`.
 
