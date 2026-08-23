@@ -19,10 +19,15 @@
     margin: 0 auto;
     padding: 0 1.25rem;
     box-sizing: border-box;
-    /* Site-wide poem type size, in one place. 0.7em of body (19.2px → 13.44px)
-       is what shipped 2026-08-22 — it began life as a leaked per-poem
-       :global() rule; made explicit here so the number is a decision, not an
-       accident. Per-poem adjustments go through front-matter `scale`. */
+    /* Site-wide poem type size, in one place (Al, 2026-08-22): 0.7em of body
+       (13.44px) on phones so long lines don't wrap, the body's full 1.2rem
+       (19.2px) from 568px up. Per-poem adjustments go through front-matter
+       `scale`. */
     font-size: calc(0.7em * var(--poem-scale, 1));
+  }
+  @media (min-width: 568px) {
+    .poem-container {
+      font-size: calc(1em * var(--poem-scale, 1));
+    }
   }
 </style>

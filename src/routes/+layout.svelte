@@ -201,10 +201,6 @@
 		margin-top: 12vh;
 		margin-bottom: 30vh;
 		padding: 0;
-		font-size: clamp(
-			0.09rem,
-			calc(0.09rem + (1.5rem - 0.09rem) * ((100vw - 50px) / (568px - 50px))),
-			1.5rem
-		);
+		/* poem type size lives in src/routes/poems/_poem.svelte */
 	}
 </style>
