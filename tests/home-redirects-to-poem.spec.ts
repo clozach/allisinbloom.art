@@ -105,6 +105,29 @@ test.describe('Bloom shader anchoring', () => {
     expect(scrolled.px).toEqual(top.px);
   });
 
+  // A short poem (page shorter than the viewport) must still get a canvas that
+  // fills the viewport — and keep filling it when the window grows.
+  test('short poem: canvas fills the viewport, before and after a window grow', async ({ page }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem('bloom-tune-v1', JSON.stringify({ shaderOn: true }))
+    );
+    await page.setViewportSize({ width: 980, height: 945 });
+    await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
+    const measure = () =>
+      page.evaluate(() => {
+        const c = document.querySelector('canvas');
+        return { canvasCssH: c?.clientHeight ?? 0, vh: innerHeight, cloudH: c?.parentElement?.offsetHeight ?? 0 };
+      });
+    let m = await measure();
+    expect(m.canvasCssH).toBeGreaterThanOrEqual(m.vh);
+    expect(m.canvasCssH).toBe(m.cloudH);
+    await page.setViewportSize({ width: 980, height: 1400 });
+    await page.waitForTimeout(400);
+    m = await measure();
+    expect(m.canvasCssH).toBeGreaterThanOrEqual(1400);
+    expect(m.canvasCssH).toBe(m.cloudH);
+  });
+
   // iOS fires height-only resizes while its toolbars slide; under reduced
   // motion the still frame is redrawn each time and must not step the bloom.
   test('height-only resize leaves the rendered bloom pixel-identical', async ({ browser }) => {

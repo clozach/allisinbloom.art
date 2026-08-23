@@ -385,8 +385,13 @@ void main() {
 
     function resize() {
       // the cloud covers the document, not the viewport
-      const docH = document.body.offsetHeight; // CSS min-height floors it at one viewport
-      if (cloud.offsetHeight !== docH) cloud.style.height = `${docH}px`;
+      // cover the document, never less than one viewport. Always written as an
+      // explicit height: a child's `height: 100%` cannot resolve against a
+      // parent sized only by min-height (short poems rendered a half-height
+      // canvas that way, 2026-08-22).
+      const docH = Math.max(document.body.offsetHeight, document.documentElement.clientHeight);
+      const want = `${docH}px`;
+      if (cloud.style.height !== want) cloud.style.height = want;
       if (window.innerWidth !== refW) {
         // (re)measure only on a width change (orientation), never on the
         // height-only resizes iOS fires while its toolbars slide
@@ -586,6 +591,10 @@ void main() {
     overflow: hidden;
   }
   canvas {
+    /* absolute: percentages resolve against the cloud's real box, whatever
+       sized it (explicit height or the min-height floor) */
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     display: block;
