@@ -158,7 +158,8 @@ precision highp float;
 const float TAU = 6.28318530718;
 const float LN = 6.0;
 
-uniform vec2 u_res;
+uniform vec2 u_originPx; // bloom origin, canvas px (GL coords)
+uniform float u_ref;     // reference length, canvas px: one stable viewport height
 uniform float u_time;
 uniform float u_dark;
 uniform float u_loopT;
@@ -174,7 +175,6 @@ uniform float u_inkFloor;
 uniform float u_annA;
 uniform float u_annB;
 uniform float u_core;
-uniform vec2 u_origin;
 uniform vec3 u_lg0;
 uniform vec3 u_lg1;
 uniform vec3 u_ll0;
@@ -223,7 +223,9 @@ float lobes(vec2 q, float f) {
 
 void main() {
     float f = fract(u_time / u_loopT); // the ONLY gateway for time
-    vec2 p = (gl_FragCoord.xy - u_origin * u_res) / u_res.y;
+    // normalized against a STABLE length (not the canvas size) so neither
+    // page length nor iOS toolbar collapse can re-zoom the pattern
+    vec2 p = (gl_FragCoord.xy - u_originPx) / u_ref;
     float r = length(p);
 
     // the blossoming ladder
@@ -309,8 +311,18 @@ void main() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const t0 = performance.now();
     const FRAME_MS = 1000 / 30;
-    // low-frequency field behind text: render at 70% and let CSS upscale
+    // low-frequency field behind text: render at 70% and let CSS upscale;
+    // the canvas now spans the whole document (it scrolls with the text),
+    // so cap total pixels and scale down further for very long pages
     const RENDER_SCALE = 0.7;
+    const MAX_PIXELS = 2.5e6;
+    /** @type {HTMLElement} */
+    const cloud = /** @type {HTMLElement} */ (canvas.parentElement);
+    const probe = document.createElement('div'); // 100lvh: viewport height with iOS toolbars collapsed — stable while scrolling
+    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100lvh;visibility:hidden;pointer-events:none';
+    document.body.appendChild(probe);
+    let refH = 0; // CSS px
+    let pxScale = 1; // canvas px per CSS px
     let last = 0;
     let raf = 0;
     /** @type {Record<string, WebGLUniformLocation | null>} */
@@ -354,9 +366,9 @@ void main() {
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
       locs = {};
       for (const n of [
-        'u_res', 'u_time', 'u_dark', 'u_loopT', 'u_zoom', 'u_unfold', 'u_churn',
+        'u_originPx', 'u_ref', 'u_time', 'u_dark', 'u_loopT', 'u_zoom', 'u_unfold', 'u_churn',
         'u_lw1', 'u_lw2', 'u_lv1', 'u_lv2', 'u_inkGain', 'u_inkFloor',
-        'u_annA', 'u_annB', 'u_core', 'u_origin',
+        'u_annA', 'u_annB', 'u_core',
         ...Object.keys(COLOR_UNIFORMS),
       ]) {
         locs[n] = gl.getUniformLocation(prog, n);
@@ -365,9 +377,19 @@ void main() {
     }
 
     function resize() {
+      // the cloud covers the document, not the viewport
+      const docH = Math.max(document.body.offsetHeight, document.documentElement.clientHeight);
+      if (cloud.offsetHeight !== docH) cloud.style.height = `${docH}px`;
+      refH = probe.offsetHeight || window.innerHeight;
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5); // re-read: zoom/display moves
-      const w = Math.floor(canvas.clientWidth * dpr * RENDER_SCALE);
-      const h = Math.floor(canvas.clientHeight * dpr * RENDER_SCALE);
+      const cssW = canvas.clientWidth;
+      const cssH = canvas.clientHeight;
+      let scale = dpr * RENDER_SCALE;
+      const budget = Math.sqrt(MAX_PIXELS / Math.max(1, cssW * cssH * scale * scale));
+      if (budget < 1) scale *= budget;
+      pxScale = scale;
+      const w = Math.floor(cssW * scale);
+      const h = Math.floor(cssH * scale);
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -389,7 +411,6 @@ void main() {
       resize();
       const loopT = tune.doubling * 6; // one full ladder cycle
       const t = (((now - t0) / 1000) * tune.speed) % loopT;
-      gl.uniform2f(locs.u_res, canvas.width, canvas.height);
       gl.uniform1f(locs.u_time, t);
       gl.uniform1f(locs.u_dark, effectiveDark());
       gl.uniform1f(locs.u_loopT, loopT);
@@ -405,7 +426,9 @@ void main() {
       gl.uniform1f(locs.u_annA, tune.annA);
       gl.uniform1f(locs.u_annB, tune.annB);
       gl.uniform1f(locs.u_core, tune.core);
-      gl.uniform2f(locs.u_origin, tune.originX, tune.originY);
+      // origin sits at (originX, originY) of the FIRST screen, measured from the page top
+      gl.uniform2f(locs.u_originPx, tune.originX * canvas.width, canvas.height - tune.originY * refH * pxScale);
+      gl.uniform1f(locs.u_ref, refH * pxScale);
       for (const [uni, key] of Object.entries(COLOR_UNIFORMS)) {
         const [r, g, b] = hexToRgb(tune[key]);
         gl.uniform3f(locs[uni], r, g, b);
@@ -446,6 +469,9 @@ void main() {
     }
 
     window.addEventListener('resize', onResize);
+    // page length changes (route change, fonts settling) → re-cover the document
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => start()) : null;
+    ro?.observe(document.body);
     document.addEventListener('visibilitychange', onVisibility);
     reduced.addEventListener?.('change', onMotion);
     mql.addEventListener?.('change', onScheme);
@@ -458,6 +484,9 @@ void main() {
         cancelAnimationFrame(raf);
         kick = () => {};
         window.removeEventListener('resize', onResize);
+        ro?.disconnect();
+        probe.remove();
+        cloud.style.height = '';
         document.removeEventListener('visibilitychange', onVisibility);
         reduced.removeEventListener?.('change', onMotion);
         mql.removeEventListener?.('change', onScheme);
@@ -528,10 +557,16 @@ void main() {
     border-radius: 8px;
   }
   .cloud {
-    position: fixed;
-    inset: 0;
+    /* anchored to the document so it scrolls WITH the text: the lace under
+       each glyph stays put, and iOS toolbar collapse can't resize it */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 100vh; /* until resize() measures the page */
     z-index: -1;
     pointer-events: none;
+    overflow: hidden;
   }
   canvas {
     width: 100%;

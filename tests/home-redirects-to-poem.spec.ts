@@ -75,3 +75,33 @@ test.describe('Bloom tuner on touch', () => {
     await expect(page.locator('.tuner')).toHaveCount(0);
   });
 });
+
+// The shader must scroll WITH the text: a viewport-fixed canvas re-sized
+// under iOS toolbar collapse and re-zoomed the lace beneath every glyph.
+test.describe('Bloom shader anchoring', () => {
+  test('canvas spans the document and ignores scrolling', async ({ page }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem('bloom-tune-v1', JSON.stringify({ shaderOn: true }))
+    );
+    await page.goto(`/poems/${ROUTES[ROUTES.length - 1]}`, { waitUntil: 'networkidle' });
+    const canvas = page.locator('canvas');
+    await expect(canvas).toHaveCount(1);
+    const measure = () =>
+      page.evaluate(() => {
+        const c = document.querySelector('canvas');
+        const cloud = c?.parentElement;
+        return {
+          px: c ? [c.width, c.height] : null,
+          position: cloud ? getComputedStyle(cloud).position : null,
+          coversDocument: cloud ? cloud.offsetHeight >= document.body.offsetHeight : false,
+        };
+      });
+    const top = await measure();
+    expect(top.position).toBe('absolute');
+    expect(top.coversDocument).toBe(true);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+    await page.waitForTimeout(250);
+    const scrolled = await measure();
+    expect(scrolled.px).toEqual(top.px);
+  });
+});
