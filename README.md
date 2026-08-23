@@ -14,6 +14,27 @@ A collection of poems and prose, built with mdsvex and notion.
 - [ ] (user-activity): populate the rest of the file & add more poems to flesh out the site some more.
 - [ ] Write scripts to push to a preview branch, then add an automation so it happens without effort on every commit
 
+## Site nav (signature = home, butterfly = Bluesky)
+
+Two quiet links on every poem page (2026-08-23):
+
+- **The signature is the home link.** `src/lib/components/ByLine.svelte` wraps
+  the signature image in an `<a>` to the first poem in `static/route.txt`
+  (`$page.data.routes[0]` — never `/`, which redirects to a *random* poem). It is
+  unnamed on the page: the tooltip (`title="home"`) and the accessible name
+  carry the word; the global `a::after` º is suppressed on it.
+- **A Bluesky butterfly** (`src/lib/components/PoemNav.svelte`, `.sky`) sits at
+  the exact centre between the previous/next titles — grid `1fr auto 1fr`,
+  1 rem gaps, body ink (`--ink`), opens `bsky.app/profile/allisinbloom.bsky.social`
+  in a new tab. The nav now renders on every poem page, first and last included.
+
+Tests: `tests/site-nav.spec.ts`. To test removal: unwrap the image in
+`ByLine.svelte` and delete the `.sky` anchor + its styles in `PoemNav.svelte`.
+
+The animated signature-nav (blossoms from the signature → flower links) is
+roadmapped in the amaanah vault, `projects/allisinbloom-site/AGENTS.md`; a first
+build exists in history at `e1a4a29` (reverted by `13590bd`).
+
 ## Dark mode
 
 Theme tokens (`--bg`, `--ink`, `--accent`, `--hr`, `--card-bg`, `--sig-filter`, …) live
