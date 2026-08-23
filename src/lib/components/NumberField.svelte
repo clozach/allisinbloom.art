@@ -1,8 +1,9 @@
 <script>
   // Figma-style numeric field (vault propsheet contract, 2026-08-21): label
   // ABOVE the control; the control is [icon][value+unit]. Drag the icon to
-  // scrub (right = up, `step` per px; the pointer wraps across the screen via
-  // Pointer Lock where allowed, plain capture-drag otherwise). Click/Tab into
+  // scrub (right = up, `step` per px) — a plain capture-drag, never Pointer
+  // Lock: Safari answers pointer lock with a mandatory "mouse pointer is
+  // hidden" banner that pushes the whole page down. Click/Tab into
   // the number to type; ↑/↓ nudge by `step` (⇧ ×10); Enter or blur submits
   // with every non-numeric character stripped; Esc reverts.
   import { ICONS } from '$lib/bloom/icons.js';
@@ -64,53 +65,20 @@
     }
   }
 
-  // scrubbing
-  /** @type {HTMLElement} */
-  let knob;
+  // scrubbing — plain capture-drag only (no Pointer Lock; see header comment)
   let dragging = false;
-  let locked = false;
   let startVal = 0;
   let acc = 0;
   let lastX = 0;
-  let cx = 0;
-  let cy = 0;
-  /** @type {HTMLDivElement | null} */
-  let cursor = null;
   /** @param {MouseEvent} e */
   function onMove(e) {
-    let dx;
-    if (locked) {
-      dx = e.movementX || 0;
-      cx = (cx + dx + window.innerWidth) % window.innerWidth; // wrap across the screen
-      cy = Math.min(window.innerHeight - 1, Math.max(0, cy + (e.movementY || 0)));
-      if (cursor) {
-        cursor.style.left = `${cx}px`;
-        cursor.style.top = `${cy}px`;
-      }
-    } else {
-      dx = e.clientX - lastX;
-      lastX = e.clientX;
-    }
-    acc += dx * step;
+    acc += (e.clientX - lastX) * step;
+    lastX = e.clientX;
     commit(startVal + acc);
-  }
-  function onLockChange() {
-    locked = document.pointerLockElement === knob;
-    if (locked && !cursor) {
-      cursor = document.createElement('div');
-      cursor.innerHTML = ICONS.drag;
-      cursor.style.cssText = `position:fixed;z-index:1000;pointer-events:none;transform:translate(-50%,-50%);color:#fff;filter:drop-shadow(0 0 2px #000);left:${cx}px;top:${cy}px`;
-      document.body.append(cursor);
-    }
   }
   function endDrag() {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', endDrag);
-    document.removeEventListener('pointerlockchange', onLockChange);
-    if (document.pointerLockElement === knob) document.exitPointerLock?.();
-    locked = false;
-    cursor?.remove();
-    cursor = null;
     dragging = false;
   }
   /** @param {MouseEvent} e */
@@ -118,21 +86,12 @@
     e.preventDefault();
     startVal = value;
     acc = 0;
-    lastX = cx = e.clientX;
-    cy = e.clientY;
+    lastX = e.clientX;
     dragging = true;
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', endDrag);
-    document.addEventListener('pointerlockchange', onLockChange);
-    try {
-      /** @type {any} */
-      const r = knob.requestPointerLock?.();
-      r?.catch?.(() => {}); // sandboxed host: plain drag
-    } catch {
-      /* plain drag */
-    }
   }
-  // touch: a plain capture-drag (no pointer lock on touch screens)
+  // touch: the same capture-drag
   /** @param {TouchEvent} e */
   function onTouchStart(e) {
     const t = e.touches[0];
@@ -158,7 +117,6 @@
     <span
       class="knob"
       class:is-dragging={dragging}
-      bind:this={knob}
       role="presentation"
       title="drag to adjust {label}"
       on:mousedown={startDrag}
