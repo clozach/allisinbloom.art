@@ -309,7 +309,13 @@ void main() {
 
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const t0 = performance.now();
+    // Bloom time advances by clamped per-frame deltas, never wall-clock:
+    // when Safari skips frames (scroll start, toolbar animation) the next
+    // frame must not "catch up" in one visible zoom-step. Under reduced
+    // motion the clock is frozen, so every redraw is the same still.
+    let clock = 0; // seconds of bloom time
+    let prevFrame = 0;
+    const MAX_STEP_MS = 1000 / 20;
     const FRAME_MS = 1000 / 30;
     // low-frequency field behind text: render at 70% and let CSS upscale;
     // the canvas now spans the whole document (it scrolls with the text),
@@ -321,7 +327,8 @@ void main() {
     const probe = document.createElement('div'); // 100lvh: viewport height with iOS toolbars collapsed — stable while scrolling
     probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100lvh;visibility:hidden;pointer-events:none';
     document.body.appendChild(probe);
-    let refH = 0; // CSS px
+    let refH = 0; // CSS px — pinned per width so no mid-scroll viewport read can re-zoom
+    let refW = 0;
     let pxScale = 1; // canvas px per CSS px
     let last = 0;
     let raf = 0;
@@ -378,9 +385,14 @@ void main() {
 
     function resize() {
       // the cloud covers the document, not the viewport
-      const docH = Math.max(document.body.offsetHeight, document.documentElement.clientHeight);
+      const docH = document.body.offsetHeight; // CSS min-height floors it at one viewport
       if (cloud.offsetHeight !== docH) cloud.style.height = `${docH}px`;
-      refH = probe.offsetHeight || window.innerHeight;
+      if (window.innerWidth !== refW) {
+        // (re)measure only on a width change (orientation), never on the
+        // height-only resizes iOS fires while its toolbars slide
+        refW = window.innerWidth;
+        refH = Math.max(probe.offsetHeight, window.innerHeight);
+      }
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5); // re-read: zoom/display moves
       const cssW = canvas.clientWidth;
       const cssH = canvas.clientHeight;
@@ -408,9 +420,13 @@ void main() {
       if (gl.isContextLost()) return;
       if (now - last < FRAME_MS) return;
       last = now;
+      if (prevFrame && !reduced.matches) {
+        clock += (Math.min(now - prevFrame, MAX_STEP_MS) / 1000) * tune.speed;
+      }
+      prevFrame = now;
       resize();
       const loopT = tune.doubling * 6; // one full ladder cycle
-      const t = (((now - t0) / 1000) * tune.speed) % loopT;
+      const t = clock % loopT;
       gl.uniform1f(locs.u_time, t);
       gl.uniform1f(locs.u_dark, effectiveDark());
       gl.uniform1f(locs.u_loopT, loopT);
@@ -441,6 +457,7 @@ void main() {
     function start() {
       cancelAnimationFrame(raf);
       last = 0; // bypass the throttle so the next frame is immediate
+      prevFrame = 0; // and don't count the gap since the last frame as bloom time
       raf = requestAnimationFrame(draw);
     }
     kick = start;

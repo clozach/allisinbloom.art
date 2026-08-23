@@ -104,4 +104,44 @@ test.describe('Bloom shader anchoring', () => {
     const scrolled = await measure();
     expect(scrolled.px).toEqual(top.px);
   });
+
+  // iOS fires height-only resizes while its toolbars slide; under reduced
+  // motion the still frame is redrawn each time and must not step the bloom.
+  test('height-only resize leaves the rendered bloom pixel-identical', async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 664 }, reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => {
+      localStorage.setItem('bloom-tune-v1', JSON.stringify({ shaderOn: true }));
+      const orig = HTMLCanvasElement.prototype.getContext;
+      // keep the GL buffer readable after the frame so the test can hash it
+      // @ts-ignore
+      HTMLCanvasElement.prototype.getContext = function (t, o) {
+        return orig.call(this, t, { ...(o || {}), preserveDrawingBuffer: true });
+      };
+    });
+    await page.goto(`/poems/${ROUTES[ROUTES.length - 1]}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(500);
+    const ROWS = 800; // fixed region: the page may gain rows at the bottom, never the top
+    const hashTop = () =>
+      page.evaluate((rows) => {
+        const c = document.querySelector('canvas');
+        if (!c || c.height < rows) return null;
+        const o = document.createElement('canvas');
+        o.width = c.width;
+        o.height = rows;
+        const g = o.getContext('2d');
+        if (!g) return null;
+        g.drawImage(c, 0, 0);
+        const d = g.getImageData(0, 0, o.width, rows).data;
+        let h = 0;
+        for (let i = 0; i < d.length; i += 4) h = (h * 31 + d[i] + d[i + 1] + d[i + 2]) >>> 0;
+        return h;
+      }, ROWS);
+    const before = await hashTop();
+    expect(before).not.toBeNull();
+    await page.setViewportSize({ width: 390, height: 760 });
+    await page.waitForTimeout(400);
+    expect(await hashTop()).toBe(before);
+    await ctx.close();
+  });
 });
