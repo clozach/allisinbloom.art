@@ -42,6 +42,11 @@ test.describe('Site nav', () => {
     if (!prev || !mid || !next) throw new Error('nav boxes missing');
     expect(mid.x).toBeGreaterThan(prev.x + prev.width);
     expect(mid.x + mid.width).toBeLessThan(next.x);
+    // …and halfway between them: equal air on both sides (±2 px)
+    const leftAir = mid.x - (prev.x + prev.width);
+    const rightAir = next.x - (mid.x + mid.width);
+    expect(Math.abs(leftAir - rightAir), `air L ${leftAir} vs R ${rightAir}`).toBeLessThanOrEqual(2);
+    expect(leftAir).toBeGreaterThanOrEqual(10);
     // ink-coloured, not the accent
     const color = await sky.evaluate((el) => getComputedStyle(el).color);
     const ink = await page.evaluate(() => getComputedStyle(document.body).color);

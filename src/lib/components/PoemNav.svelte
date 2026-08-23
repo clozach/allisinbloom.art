@@ -56,15 +56,19 @@
     padding: 0 1rem;
   }
 
-  /* prev · butterfly · next. The row keeps its pre-butterfly intrinsic width
-     (titles + 2 rem): the butterfly's box is cancelled by half-width negative
-     margins, so it floats in the existing whitespace instead of widening the
-     nav — which would widen <main> (it shrink-wraps) and shift the poem. */
+  /* prev · butterfly · next. The butterfly's box is cancelled by half-width
+     negative margins, so it floats in the row's whitespace instead of widening
+     the nav (which would widen the shrink-wrapped <main> and shift the poem).
+     --air is the visible whitespace on each side of the butterfly; the flex
+     gap is derived from it. space-between (and NO auto margin on .next) keeps
+     the butterfly exactly halfway between the two titles. */
   .nav-links {
+    --sky-size: 1.05em;
+    --air: 0.75rem; /* doubled from the ~0.375 rem it started at (Al, 2026-08-23) */
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 1rem;
+    gap: calc(var(--air) + var(--sky-size) / 2);
   }
 
   .nav-link {
@@ -87,7 +91,6 @@
   }
 
   .nav-link.next {
-    margin-left: auto;
     justify-content: flex-end;
     text-align: right;
   }
@@ -99,7 +102,7 @@
 
   /* the butterfly: body ink, no º, same quiet opacity ramp as the titles */
   .sky {
-    --size: 1.05em;
+    --size: var(--sky-size);
     flex: 0 0 var(--size);
     width: var(--size);
     margin: 0 calc(var(--size) / -2);
