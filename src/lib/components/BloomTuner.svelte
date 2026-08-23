@@ -192,12 +192,21 @@
   }
   .tuner-head {
     display: flex;
+    /* tight hosts (Safari text zoom) wrap whole tokens to a second line —
+       never mid-word; the hud is width-padded so 99→100s can't reflow */
+    flex-wrap: wrap;
     align-items: baseline;
     gap: 8px;
     margin-bottom: 6px;
   }
+  .tuner-head strong,
+  .tuner-head .hud,
+  .tuner-head .hint {
+    white-space: nowrap;
+  }
   .tuner-head .hud {
     color: #9d8fa6;
+    font-variant-numeric: tabular-nums;
   }
   .tuner-head .head-right {
     margin-left: auto;

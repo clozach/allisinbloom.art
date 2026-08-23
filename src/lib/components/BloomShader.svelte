@@ -446,7 +446,10 @@ void main() {
         gl.uniform3f(locs[uni], r, g, b);
       }
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      hud = `${t.toFixed(0)}/${loopT.toFixed(0)}s`;
+      // pad t to the loop total's digit count (NBSP = one monospace cell) so
+      // the hud never changes width mid-loop — 99→100 must not reflow the head
+      const total = loopT.toFixed(0);
+      hud = `${t.toFixed(0).padStart(total.length, ' ')}/${total}s`;
       if (still) cancelAnimationFrame(raf); // one still frame
     }
 
