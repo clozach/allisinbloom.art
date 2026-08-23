@@ -204,7 +204,7 @@ test.describe('Per-poem seeded bloom', () => {
     const key = `bloom-page-v1:${ROUTES[0]}`;
     const rec = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
     expect(typeof rec?.seed).toBe('number');
-    expect(typeof rec?.lightGroundA).toBe('string');
+    expect(rec.current).toBeUndefined(); // the seed IS the default; no edits yet
     await page.reload({ waitUntil: 'networkidle' });
     const again = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
     expect(again.seed).toBe(rec.seed);
@@ -236,13 +236,14 @@ test.describe('Per-poem seeded bloom', () => {
     expect(await frame(8)).not.toBe(a);
   });
 
-  test('tuner nests shader ▸ animate ▸ motion sliders; reroll changes only this poem', async ({ page }) => {
+  test('tuner nests shader ▸ animate ▸ motion sliders; dice + revert act on this poem only', async ({ page }) => {
     await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
+    await page.addInitScript(seedPage, { slug: ROUTES[0], seed: 7 });
     await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
     await page.keyboard.press('`');
     const tuner = page.locator('.tuner');
     await expect(tuner).toBeVisible();
-    const rowLabels = () => tuner.locator('label.row > span').allTextContents();
+    const rowLabels = () => tuner.locator('.row span').allTextContents();
     let labels = await rowLabels();
     expect(labels).toContain('animate');
     expect(labels).not.toContain('time multiplier'); // hidden while animate is off
@@ -259,14 +260,34 @@ test.describe('Per-poem seeded bloom', () => {
     await expect(page.locator('canvas')).toHaveCount(0);
     await tuner.getByText('shader', { exact: true }).click();
     await expect(page.locator('canvas')).toHaveCount(1);
-    // reroll: this poem's seed changes, the other poem's stays
-    const seedsBefore = await page.evaluate((slugs) =>
-      slugs.map((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}').seed), ROUTES.slice(0, 2));
-    await tuner.getByRole('button', { name: 'reroll this poem' }).click();
-    const seedsAfter = await page.evaluate((slugs) =>
-      slugs.map((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}').seed), ROUTES.slice(0, 2));
-    expect(seedsAfter[0]).not.toBe(seedsBefore[0]);
-    expect(seedsAfter[1]).toBe(seedsBefore[1]);
-    await expect(tuner.locator('.group').first()).toHaveText(`this poem · seed ${seedsAfter[0]}`);
+
+    const record = (slug: string) =>
+      page.evaluate((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}'), slug);
+    const born = await record(ROUTES[0]);
+    expect(born.seed).toBe(7);
+    expect(born.current).toBeUndefined(); // pinned page, untouched: no edited layer
+    const otherBefore = await record(ROUTES[1]);
+
+    // motion dice: only speed/doubling move, seed stays
+    await tuner.getByRole('button', { name: "Reroll this poem's motion" }).click();
+    let rec = await record(ROUTES[0]);
+    expect(rec.seed).toBe(7);
+    expect(rec.current).toBeTruthy();
+    const after = rec.current;
+    expect([after.speed, after.doubling]).not.toEqual([born.speed, born.doubling]);
+    // blot dice: still knobs + palette move, motion keeps its last roll
+    await tuner.getByRole('button', { name: "Reroll this poem's blot" }).click();
+    rec = await record(ROUTES[0]);
+    expect(rec.seed).toBe(7);
+    expect([rec.current.speed, rec.current.doubling]).toEqual([after.speed, after.doubling]);
+    expect(rec.current.lightGroundA).not.toBe(after.lightGroundA);
+    expect(rec.current.zoom).not.toBe(after.zoom);
+    // revert: the edited layer is gone, the default seed remains
+    await tuner.getByRole('button', { name: 'revert' }).click();
+    rec = await record(ROUTES[0]);
+    expect(rec).toEqual({ seed: 7 });
+    await expect(tuner.locator('.group').first()).toHaveText('this poem · seed 7');
+    // the other poem never changed
+    expect(await record(ROUTES[1])).toEqual(otherBefore);
   });
 });

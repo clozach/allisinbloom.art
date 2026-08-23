@@ -29,8 +29,10 @@ To test: flip the OS appearance, or use the tuner's theme select in dev.
 seed, generates every shader knob and both palettes from it
 (`src/lib/bloom/generate.js`, pure + deterministic), and stores the lot under
 `localStorage['bloom-page-v1:<slug>']` (`src/lib/bloom/store.js`) — so each poem is
-its own hand-made sheet, and a returning visitor sees the same sheet. Tweaks
-overwrite that page's values; **reroll this poem** replaces its seed only. Site-wide
+its own hand-made sheet, and a returning visitor sees the same sheet. The record is
+`{ seed, current? }`: the seed is the page's **write-once default** (never rewritten
+unless the visitor clears site data); `current` is its edited layer — slider tweaks
+and 🎲 rolls — and **revert** deletes that layer. Site-wide
 visibility lives apart in `bloom-prefs-v1` `{ shaderOn: true, animate: false }`: the
 nesting is shader-visible? ▸ shader-animated? — with `animate` off the clock is
 frozen at the page's generated `phase` (a still blot); on, it runs from there.
@@ -59,10 +61,13 @@ function of `t / loopT`, so the loop is bit-exact (verified by pixel-diff at `t`
   the bottom-left corner of the screen** (an invisible 56 px hotspot; hold ~0.6 s
   without moving) — to open the "bloom tuner"; ✕ closes it. Rows: `shader` (site-wide),
   `animate` nested under it (site-wide, hides the motion sliders `time multiplier` /
-  `seconds per doubling` while off), `theme` override, then **this poem · seed N**
-  with live sliders for every knob (incl. `moment in the loop`) and color pickers for
-  the palette endpoints, `copy values` (exports this page's set incl. seed) and
-  `reroll this poem`. The panel is `BloomTuner.svelte`, dynamic-imported on first
+  `seconds per doubling` while off) — each row carries a 🎲: the shader die rerolls
+  this poem's blot (every still knob + both palettes), the animate die rerolls only
+  its motion knobs, both into the page's `current` layer — then `theme` override,
+  **this poem · seed N** with live sliders for every knob (incl. `moment in the loop`)
+  and color pickers for the palette endpoints, `copy values` (exports this page's set
+  incl. seed) and `revert` (back to the seed's generated blot). The panel grows to the
+  viewport height before it scrolls. It is `BloomTuner.svelte`, dynamic-imported on first
   summon so it ships as its own lazy chunk.
 - ⚠️ `.env` must NOT set `NODE_ENV` — Vite reads it and silently turns
   `vite build` into a dev-mode build (bigger bundles, dev flags true). Removed

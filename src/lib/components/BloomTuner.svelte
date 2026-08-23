@@ -50,7 +50,9 @@
   export let onTweak;
   export let onPrefs;
   export let applyTheme;
-  export let reroll;
+  export let revert;
+  /** @type {(part: 'still' | 'motion') => void} */
+  export let roll;
 
   $: visibleParams = PARAMS.filter((p) => !p.motion || prefs.animate);
   /** @type {() => void} */
@@ -77,17 +79,23 @@
       <button class="close" type="button" aria-label="Close bloom tuner" on:click={onClose}>✕</button>
     </span>
   </div>
-  <label class="row">
-    <span>shader</span>
-    <input type="checkbox" bind:checked={prefs.shaderOn} on:change={onPrefs} />
+  <div class="row">
+    <label class="cell"><span>shader</span><input type="checkbox" bind:checked={prefs.shaderOn} on:change={onPrefs} /></label>
+    <span class="dice-cell">
+      {#if prefs.shaderOn}
+        <button class="dice" type="button" aria-label="Reroll this poem's blot" title="reroll the blot" on:click={() => roll('still')}>🎲</button>
+      {/if}
+    </span>
     <code>{prefs.shaderOn ? 'on' : 'off'}</code>
-  </label>
+  </div>
   {#if prefs.shaderOn}
-    <label class="row nested">
-      <span>animate</span>
-      <input type="checkbox" bind:checked={prefs.animate} on:change={onPrefs} />
+    <div class="row nested">
+      <label class="cell"><span>animate</span><input type="checkbox" bind:checked={prefs.animate} on:change={onPrefs} /></label>
+      <span class="dice-cell">
+        <button class="dice" type="button" aria-label="Reroll this poem's motion" title="reroll the motion" on:click={() => roll('motion')}>🎲</button>
+      </span>
       <code>{prefs.animate ? 'on' : 'off'}</code>
-    </label>
+    </div>
   {/if}
   <label class="row">
     <span>theme</span>
@@ -123,11 +131,12 @@
         </div>
       {/each}
     {/each}
+    <div class="note">🎲 rerolls into this poem's edits; revert returns to the blot it was born with.</div>
     <div class="note">generated palettes clear 4.5:1 against the ink — the pickers can't promise that; recheck before keeping a hand-picked color</div>
   {/if}
   <div class="tuner-actions">
     <button on:click={copyTune}>{copied ? 'copied!' : 'copy values'}</button>
-    <button on:click={reroll}>reroll this poem</button>
+    <button on:click={revert}>revert</button>
   </div>
 </div>
 
@@ -138,7 +147,8 @@
     bottom: 12px;
     z-index: 100;
     width: 320px;
-    max-height: 80vh;
+    /* grow to the viewport before asking for a scroll */
+    max-height: calc(100dvh - 24px);
     overflow-y: auto;
     background: rgb(20 16 20 / 0.92);
     color: #e8e2ea;
@@ -187,6 +197,29 @@
     align-items: center;
     gap: 6px;
     margin: 2px 0;
+  }
+  .row .cell {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .dice-cell {
+    justify-self: start;
+  }
+  .dice {
+    background: none;
+    border: 0;
+    padding: 0 2px;
+    font: inherit;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .dice:focus-visible {
+    outline: 2px solid #caa8d6;
+    border-radius: 4px;
   }
   .row.nested {
     margin-left: 12px;

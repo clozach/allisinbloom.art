@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadPrefs, savePrefs, loadPage, savePage, rerollPage } from '$lib/bloom/store.js';
+  import { loadPrefs, savePrefs, loadPage, savePage, revertPage, rollPart } from '$lib/bloom/store.js';
 
   /** the poem this page shows — its bloom is seeded + persisted per slug */
   export let slug = '';
@@ -106,9 +106,15 @@
     kick();
   }
 
-  // a fresh blot for THIS poem only (new seed; other pages keep theirs)
-  function reroll() {
-    tune = rerollPage(slug);
+  // back to THIS poem's generated default (drops its edited layer only)
+  function revert() {
+    tune = revertPage(slug);
+    kick();
+  }
+  /** dice: reroll the blot ('still') or just the motion knobs ('motion') */
+  /** @param {'still' | 'motion'} part */
+  function roll(part) {
+    tune = rollPart(slug, tune, part);
     kick();
   }
 
@@ -528,7 +534,8 @@ void main() {
     {onTweak}
     {onPrefs}
     {applyTheme}
-    {reroll}
+    {revert}
+    {roll}
     onClose={closePanel}
   />
 {/if}
