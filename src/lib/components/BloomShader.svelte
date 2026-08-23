@@ -1,7 +1,9 @@
 <script>
   import { onMount } from 'svelte';
+  import { loadPrefs, savePrefs, loadPage, savePage, rerollPage } from '$lib/bloom/store.js';
 
-  const STORE_KEY = 'bloom-tune-v1';
+  /** the poem this page shows — its bloom is seeded + persisted per slug */
+  export let slug = '';
 
   let panelOpen = false;
   /** theme override: 'auto' | 'light' | 'dark' */
@@ -49,42 +51,11 @@
     if (holdTimer && Math.hypot(e.clientX - holdX, e.clientY - holdY) > HOLD_SLOP_PX) cancelHold();
   }
 
-  // Every magic number in the shader, live-tunable from the tuner panel
-  // (press ` on a poem page; slider metadata lives in BloomTuner.svelte).
-  // These are the shipped defaults; the panel's Copy button exports your
-  // current set for baking in. The shader itself ships OFF — `shaderOn`
-  // is the easter-egg toggle, persisted per-browser in localStorage.
-  const DEFAULTS = {
-    shaderOn: false,
-    speed: 1,
-    doubling: 120,
-    zoom: 2.2,
-    unfold: 0.35,
-    churn: 0.16,
-    lw1: 0.055,
-    lw2: 0.035,
-    lv1: 0.42,
-    lv2: 0.62,
-    inkGain: 1.8,
-    inkFloor: 0.35,
-    annA: 0.28,
-    annB: 0.55,
-    core: 2.2,
-    originX: 0.5,
-    originY: 0.46,
-    // palette gradient endpoints (sRGB hex). Shipped values sit inside the
-    // a11y contrast bands; the pickers can leave the band, so re-check
-    // contrast before baking in a new palette.
-    lightGroundA: "#ffecd5",
-    lightGroundB: "#d9cafe",
-    lightLaceA: "#d9cff2",
-    lightLaceB: "#5b95a1",
-    darkGroundA: "#161114",
-    darkGroundB: "#20191d",
-    darkLaceA: "#3d3243",
-    darkLaceB: "#513e5d",
-  };
-
+  // Every magic number in the shader is generated per poem from a seed
+  // (src/lib/bloom/generate.js) and persisted per page (store.js); the
+  // tuner panel (press ` on a poem page) live-edits this page's values.
+  // Visibility is site-wide: `prefs.shaderOn` shows the bloom (default on),
+  // `prefs.animate` lets its clock run (default off → a still blot).
   // uniform name -> tune key for the palette endpoint colors
   const COLOR_UNIFORMS = {
     u_lg0: 'lightGroundA',
@@ -103,23 +74,26 @@
     return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
   }
 
-  /** @type {Record<string, any>} */
-  let tune = { ...DEFAULTS };
-  if (typeof window !== 'undefined') {
-    try {
-      tune = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE_KEY) || '{}') };
-    } catch {
-      /* stale storage, keep defaults */
-    }
-  }
-
   // assigned while the canvas is mounted; safe no-ops otherwise
   let kick = () => {};
 
+  let prefs = loadPrefs();
+  /** @type {Record<string, any>} */
+  let tune = {};
+  let loadedSlug = '';
+  // (re)load this page's blot whenever the poem changes
+  $: if (slug !== loadedSlug) {
+    loadedSlug = slug;
+    tune = loadPage(slug);
+    kick();
+  }
+
   function onTweak() {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORE_KEY, JSON.stringify(tune));
-    }
+    savePage(slug, tune);
+    kick();
+  }
+  function onPrefs() {
+    savePrefs(prefs);
     kick();
   }
 
@@ -132,9 +106,9 @@
     kick();
   }
 
-  function resetTune() {
-    tune = { ...DEFAULTS };
-    if (typeof window !== 'undefined') localStorage.removeItem(STORE_KEY);
+  // a fresh blot for THIS poem only (new seed; other pages keep theirs)
+  function reroll() {
+    tune = rerollPage(slug);
     kick();
   }
 
@@ -425,13 +399,16 @@ void main() {
       if (gl.isContextLost()) return;
       if (now - last < FRAME_MS) return;
       last = now;
-      if (prevFrame && !reduced.matches) {
+      const still = reduced.matches || !prefs.animate;
+      if (prevFrame && !still) {
         clock += (Math.min(now - prevFrame, MAX_STEP_MS) / 1000) * tune.speed;
       }
       prevFrame = now;
       resize();
       const loopT = tune.doubling * 6; // one full ladder cycle
-      const t = clock % loopT;
+      // the page's `phase` picks the moment in the loop a still frame shows;
+      // animation runs onward from it
+      const t = (tune.phase * loopT + clock) % loopT;
       gl.uniform1f(locs.u_time, t);
       gl.uniform1f(locs.u_dark, effectiveDark());
       gl.uniform1f(locs.u_loopT, loopT);
@@ -455,8 +432,8 @@ void main() {
         gl.uniform3f(locs[uni], r, g, b);
       }
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      hud = `t ${t.toFixed(1)}s / loop ${loopT.toFixed(0)}s`;
-      if (reduced.matches) cancelAnimationFrame(raf); // one still frame
+      hud = `${t.toFixed(0)}/${loopT.toFixed(0)}s`;
+      if (still) cancelAnimationFrame(raf); // one still frame
     }
 
     function start() {
@@ -520,7 +497,7 @@ void main() {
   }
 </script>
 
-{#if tune.shaderOn}
+{#if prefs.shaderOn}
   <div class="cloud" aria-hidden="true">
     <canvas use:shader></canvas>
   </div>
@@ -545,11 +522,13 @@ void main() {
   <svelte:component
     this={TunerComp}
     bind:tune
+    bind:prefs
     bind:theme
     {hud}
     {onTweak}
+    {onPrefs}
     {applyTheme}
-    {resetTune}
+    {reroll}
     onClose={closePanel}
   />
 {/if}

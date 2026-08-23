@@ -71,7 +71,7 @@
 </svelte:head>
 
 {#if isPoemPage}
-	<BloomShader />
+	<BloomShader slug={currentRoute} />
 {/if}
 
 <div class="app">

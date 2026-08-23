@@ -24,39 +24,55 @@ To test: flip the OS appearance, or use the tuner's theme select in dev.
 
 ## Background shader ("endless fractal blossoming")
 
-**Off by default.** Poem pages mount `src/lib/components/BloomShader.svelte`, but no
-canvas is created (and no WebGL work happens) until the shader is switched on from
-the tuner panel — press `` ` `` on any poem page (dev *and* production; it's an
-easter egg now, not a dev-only tool) and flip the "shader" toggle at the top. The
-choice persists per-browser in `localStorage` (`bloom-tune-v1`).
+**On by default, as a still, seeded per poem** (2026-08-23). Poem pages mount
+`src/lib/components/BloomShader.svelte`. The first render of a poem rolls a 32-bit
+seed, generates every shader knob and both palettes from it
+(`src/lib/bloom/generate.js`, pure + deterministic), and stores the lot under
+`localStorage['bloom-page-v1:<slug>']` (`src/lib/bloom/store.js`) — so each poem is
+its own hand-made sheet, and a returning visitor sees the same sheet. Tweaks
+overwrite that page's values; **reroll this poem** replaces its seed only. Site-wide
+visibility lives apart in `bloom-prefs-v1` `{ shaderOn: true, animate: false }`: the
+nesting is shader-visible? ▸ shader-animated? — with `animate` off the clock is
+frozen at the page's generated `phase` (a still blot); on, it runs from there.
+Reduced-motion always forces a still. (The pre-2026-08-23 single global blob
+`bloom-tune-v1` is removed on first load.)
+
+**a11y:** the generator searches, not trusts — every palette endpoint is nudged
+in lightness (then chroma) until it clears **4.5:1** against that theme's ink
+(`INK` in `generate.js` mirrors `--ink` in `+layout.svelte`; keep them in step).
+`tests/unit/generate.unit.mjs` proves it over 5000 seeds. The tuner's color
+pickers can leave the band — recheck before keeping a hand-picked color.
+
+**Reproducibility:** a stored `{ "seed": N }` alone reproduces the whole tune, so
+tests (and you) pin a page with
+`localStorage.setItem('bloom-page-v1:<slug>', '{"seed":7}')`; the e2e suite
+asserts pixel-identical frames for a pinned seed across fresh browser contexts.
 
 When enabled, the shader renders behind the text: a WebGL1
 fragment shader of contour filigree perpetually unfolding from an origin — six layers
 on a cyclic scale-ladder, each born as hairline lace and dissolving as broad bands
 (features double every `doubling` seconds). Every time term is an integer-frequency
 function of `t / loopT`, so the loop is bit-exact (verified by pixel-diff at `t` vs
-`t + loopT`). Both palettes are hard-coded inside their accessibility bands (≥ 4.5:1
-under each theme's ink), so no tuning knob can break text contrast.
+`t + loopT`).
 
 - **Tuner panel:** on any poem page, press `` ` `` — or, on a phone, **long-press
   the bottom-left corner of the screen** (an invisible 56 px hotspot; hold ~0.6 s
-  without moving) — to open the "bloom tuner"; ✕ closes it. Its controls: the
-  shader on/off toggle, live sliders for every magic number, color pickers for the
-  palette gradient endpoints (ground A→B and lace A→B, per theme), a theme override
-  that flips the whole page, `copy values` (exports the current set to paste into
-  `DEFAULTS` in `BloomShader.svelte`), and `reset` (which also turns the shader back
-  off, since off is the default). Tweaks persist in `localStorage` (`bloom-tune-v1`).
-  The panel is `BloomTuner.svelte`, dynamic-imported on first summon so it ships as
-  its own lazy chunk, out of the main bundle. Note: the shipped palette sits inside
-  the a11y contrast bands, but the pickers can leave them — recheck contrast before
-  baking in new colors.
+  without moving) — to open the "bloom tuner"; ✕ closes it. Rows: `shader` (site-wide),
+  `animate` nested under it (site-wide, hides the motion sliders `time multiplier` /
+  `seconds per doubling` while off), `theme` override, then **this poem · seed N**
+  with live sliders for every knob (incl. `moment in the loop`) and color pickers for
+  the palette endpoints, `copy values` (exports this page's set incl. seed) and
+  `reroll this poem`. The panel is `BloomTuner.svelte`, dynamic-imported on first
+  summon so it ships as its own lazy chunk.
 - ⚠️ `.env` must NOT set `NODE_ENV` — Vite reads it and silently turns
   `vite build` into a dev-mode build (bigger bundles, dev flags true). Removed
   2026-07-29; keep it out.
 - `static/shader-lab.html` is the standalone iteration lab (`/shader-lab.html?c=g`,
   `&dark=1`, `&speed=N`, `&freeze=S`, `&seam=1` for the loop stripe-test).
-- To test removal: delete `BloomShader.svelte`, `BloomTuner.svelte`, their
-  import/mount in `src/routes/+layout.svelte`, and `static/shader-lab.html`.
+- Tests: `pnpm test:unit` (generator) and `pnpm test:e2e` (Playwright).
+- To test removal: delete `BloomShader.svelte`, `BloomTuner.svelte`, `src/lib/bloom/`,
+  `tests/unit/`, their import/mount in `src/routes/+layout.svelte`, and
+  `static/shader-lab.html`.
 
 ## Mobile testing (before every push)
 

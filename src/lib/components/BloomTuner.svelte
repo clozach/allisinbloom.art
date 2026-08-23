@@ -1,10 +1,12 @@
 <script>
   // Easter-egg control panel for BloomShader (summoned with ` on a poem
-  // page). Ships to production as its own lazy chunk; the shader itself
-  // stays off unless the "shader" toggle below turns it on.
+  // page). Ships to production as its own lazy chunk. Nesting: the
+  // "shader" toggle reveals this poem's knobs; "animate" (off by default)
+  // reveals the motion-only knobs beneath it.
   const PARAMS = [
-    { key: 'speed', label: 'time multiplier', min: 0, max: 60, step: 0.5 },
-    { key: 'doubling', label: 'seconds per doubling', min: 10, max: 300, step: 1 },
+    { key: 'speed', label: 'time multiplier', min: 0, max: 60, step: 0.5, motion: true },
+    { key: 'doubling', label: 'seconds per doubling', min: 10, max: 300, step: 1, motion: true },
+    { key: 'phase', label: 'moment in the loop', min: 0, max: 1, step: 0.001 },
     { key: 'zoom', label: 'overall scale', min: 0.5, max: 4, step: 0.05 },
     { key: 'unfold', label: 'outward drift per layer age', min: 0, max: 1, step: 0.01 },
     { key: 'churn', label: 'morph orbit radius', min: 0, max: 0.5, step: 0.01 },
@@ -38,14 +40,19 @@
     },
   ];
 
-  /** @type {Record<string, any>} */
+  /** @type {Record<string, any>} this poem's values (incl. its seed) */
   export let tune;
+  /** @type {{ shaderOn: boolean, animate: boolean }} site-wide visibility */
+  export let prefs;
   /** @type {string} */
   export let theme;
   export let hud = '';
   export let onTweak;
+  export let onPrefs;
   export let applyTheme;
-  export let resetTune;
+  export let reroll;
+
+  $: visibleParams = PARAMS.filter((p) => !p.motion || prefs.animate);
   /** @type {() => void} */
   export let onClose = () => {};
 
@@ -72,9 +79,16 @@
   </div>
   <label class="row">
     <span>shader</span>
-    <input type="checkbox" bind:checked={tune.shaderOn} on:change={onTweak} />
-    <code>{tune.shaderOn ? 'on' : 'off'}</code>
+    <input type="checkbox" bind:checked={prefs.shaderOn} on:change={onPrefs} />
+    <code>{prefs.shaderOn ? 'on' : 'off'}</code>
   </label>
+  {#if prefs.shaderOn}
+    <label class="row nested">
+      <span>animate</span>
+      <input type="checkbox" bind:checked={prefs.animate} on:change={onPrefs} />
+      <code>{prefs.animate ? 'on' : 'off'}</code>
+    </label>
+  {/if}
   <label class="row">
     <span>theme</span>
     <select bind:value={theme} on:change={applyTheme}>
@@ -83,34 +97,37 @@
       <option value="dark">dark</option>
     </select>
   </label>
-  {#each PARAMS as p (p.key)}
-    <label class="row">
-      <span>{p.label}</span>
-      <input
-        type="range"
-        min={p.min}
-        max={p.max}
-        step={p.step}
-        bind:value={tune[p.key]}
-        on:input={onTweak}
-      />
-      <code>{tune[p.key]}</code>
-    </label>
-  {/each}
-  {#each COLOR_GROUPS as g (g.title)}
-    <div class="group">{g.title}</div>
-    {#each g.rows as row (row.a)}
-      <div class="row colors">
-        <span>{row.label}</span>
-        <input type="color" bind:value={tune[row.a]} on:input={onTweak} />
-        <input type="color" bind:value={tune[row.b]} on:input={onTweak} />
-      </div>
+  {#if prefs.shaderOn}
+    <div class="group">this poem · seed {tune.seed}</div>
+    {#each visibleParams as p (p.key)}
+      <label class="row" class:nested={p.motion}>
+        <span>{p.label}</span>
+        <input
+          type="range"
+          min={p.min}
+          max={p.max}
+          step={p.step}
+          bind:value={tune[p.key]}
+          on:input={onTweak}
+        />
+        <code>{tune[p.key]}</code>
+      </label>
     {/each}
-  {/each}
-  <div class="note">defaults sit inside the a11y contrast bands — recheck before baking in</div>
+    {#each COLOR_GROUPS as g (g.title)}
+      <div class="group">{g.title}</div>
+      {#each g.rows as row (row.a)}
+        <div class="row colors">
+          <span>{row.label}</span>
+          <input type="color" bind:value={tune[row.a]} on:input={onTweak} />
+          <input type="color" bind:value={tune[row.b]} on:input={onTweak} />
+        </div>
+      {/each}
+    {/each}
+    <div class="note">generated palettes clear 4.5:1 against the ink — the pickers can't promise that; recheck before keeping a hand-picked color</div>
+  {/if}
   <div class="tuner-actions">
     <button on:click={copyTune}>{copied ? 'copied!' : 'copy values'}</button>
-    <button on:click={resetTune}>reset</button>
+    <button on:click={reroll}>reroll this poem</button>
   </div>
 </div>
 
@@ -170,6 +187,11 @@
     align-items: center;
     gap: 6px;
     margin: 2px 0;
+  }
+  .row.nested {
+    margin-left: 12px;
+    padding-left: 8px;
+    border-left: 1px solid rgb(255 255 255 / 0.15);
   }
   .row span {
     /* labels wrap rather than truncate — every string stays readable */

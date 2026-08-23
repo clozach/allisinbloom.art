@@ -7,6 +7,35 @@ const ROUTES = readFileSync(new URL('../static/route.txt', import.meta.url), 'ut
   .map((r) => r.trim())
   .filter(Boolean);
 
+// Pin a poem's bloom seed before the app boots: the generator is
+// deterministic, so `{ seed }` alone reproduces the whole tune.
+const seedPage = ({ slug, seed }: { slug: string; seed: number }) =>
+  localStorage.setItem(`bloom-page-v1:${slug}`, JSON.stringify({ seed }));
+
+// keep the GL buffer readable after the frame so a test can hash it
+const keepBuffer = () => {
+  const orig = HTMLCanvasElement.prototype.getContext;
+  // @ts-ignore
+  HTMLCanvasElement.prototype.getContext = function (t, o) {
+    return orig.call(this, t, { ...(o || {}), preserveDrawingBuffer: true });
+  };
+};
+const hashCanvas = () =>
+  new Promise<number | null>((resolve) => {
+    const c = document.querySelector('canvas');
+    if (!c) return resolve(null);
+    const o = document.createElement('canvas');
+    o.width = c.width;
+    o.height = Math.min(c.height, 600);
+    const g = o.getContext('2d');
+    if (!g) return resolve(null);
+    g.drawImage(c, 0, 0);
+    const d = g.getImageData(0, 0, o.width, o.height).data;
+    let h = 0;
+    for (let i = 0; i < d.length; i += 4) h = (h * 31 + d[i] + d[i + 1] + d[i + 2]) >>> 0;
+    resolve(h);
+  });
+
 test.describe('Home redirects to a poem', () => {
   test('landing on / ends up on a route.txt poem', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
@@ -15,11 +44,13 @@ test.describe('Home redirects to a poem', () => {
     expect(ROUTES).toContain(slug);
   });
 
-  test('poem page renders its text with the shader off by default', async ({ page }) => {
+  test('poem page renders its text over a (still) bloom by default', async ({ page }) => {
     await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
     await expect(page.locator('main')).toBeVisible();
-    // Shader ships off: no canvas until the tuner easter egg enables it
-    await expect(page.locator('canvas')).toHaveCount(0);
+    // Shader ships ON, animation OFF: a canvas is there, its clock frozen
+    await expect(page.locator('canvas')).toHaveCount(1);
+    const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('bloom-prefs-v1') || '{}'));
+    expect(prefs.animate ?? false).toBe(false);
   });
 
   // Stanza breaks are load-bearing: every blank line in a poem's source must
@@ -80,9 +111,7 @@ test.describe('Bloom tuner on touch', () => {
 // under iOS toolbar collapse and re-zoomed the lace beneath every glyph.
 test.describe('Bloom shader anchoring', () => {
   test('canvas spans the document and ignores scrolling', async ({ page }) => {
-    await page.addInitScript(() =>
-      localStorage.setItem('bloom-tune-v1', JSON.stringify({ shaderOn: true }))
-    );
+    await page.addInitScript(seedPage, { slug: ROUTES[ROUTES.length - 1], seed: 7 });
     await page.goto(`/poems/${ROUTES[ROUTES.length - 1]}`, { waitUntil: 'networkidle' });
     const canvas = page.locator('canvas');
     await expect(canvas).toHaveCount(1);
@@ -108,9 +137,7 @@ test.describe('Bloom shader anchoring', () => {
   // A short poem (page shorter than the viewport) must still get a canvas that
   // fills the viewport — and keep filling it when the window grows.
   test('short poem: canvas fills the viewport, before and after a window grow', async ({ page }) => {
-    await page.addInitScript(() =>
-      localStorage.setItem('bloom-tune-v1', JSON.stringify({ shaderOn: true }))
-    );
+    await page.addInitScript(seedPage, { slug: ROUTES[0], seed: 7 });
     await page.setViewportSize({ width: 980, height: 945 });
     await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
     const measure = () =>
@@ -133,8 +160,8 @@ test.describe('Bloom shader anchoring', () => {
   test('height-only resize leaves the rendered bloom pixel-identical', async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 664 }, reducedMotion: 'reduce' });
     const page = await ctx.newPage();
+    await page.addInitScript(seedPage, { slug: ROUTES[ROUTES.length - 1], seed: 7 });
     await page.addInitScript(() => {
-      localStorage.setItem('bloom-tune-v1', JSON.stringify({ shaderOn: true }));
       const orig = HTMLCanvasElement.prototype.getContext;
       // keep the GL buffer readable after the frame so the test can hash it
       // @ts-ignore
@@ -166,5 +193,80 @@ test.describe('Bloom shader anchoring', () => {
     await page.waitForTimeout(400);
     expect(await hashTop()).toBe(before);
     await ctx.close();
+  });
+});
+
+// Each poem's bloom is generated from a seed rolled on first visit and
+// persisted per page; a pinned seed reproduces the frame bit-for-bit.
+test.describe('Per-poem seeded bloom', () => {
+  test('first visit rolls + stores a seed; the same seed survives reload', async ({ page }) => {
+    await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
+    const key = `bloom-page-v1:${ROUTES[0]}`;
+    const rec = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
+    expect(typeof rec?.seed).toBe('number');
+    expect(typeof rec?.lightGroundA).toBe('string');
+    await page.reload({ waitUntil: 'networkidle' });
+    const again = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
+    expect(again.seed).toBe(rec.seed);
+  });
+
+  test('two poems roll different seeds', async ({ page }) => {
+    await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
+    await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
+    const seeds = await page.evaluate((slugs) =>
+      slugs.map((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}').seed), ROUTES.slice(0, 2));
+    expect(seeds[0]).not.toBe(seeds[1]);
+  });
+
+  test('pinned seed → pixel-identical frame across fresh contexts; another seed differs', async ({ browser }) => {
+    const frame = async (seed: number) => {
+      const ctx = await browser.newContext({ viewport: { width: 800, height: 600 }, reducedMotion: 'reduce' });
+      const page = await ctx.newPage();
+      await page.addInitScript(keepBuffer);
+      await page.addInitScript(seedPage, { slug: ROUTES[0], seed });
+      await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(500);
+      const h = await page.evaluate(hashCanvas);
+      await ctx.close();
+      return h;
+    };
+    const a = await frame(7);
+    expect(a).not.toBeNull();
+    expect(await frame(7)).toBe(a);
+    expect(await frame(8)).not.toBe(a);
+  });
+
+  test('tuner nests shader ▸ animate ▸ motion sliders; reroll changes only this poem', async ({ page }) => {
+    await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
+    await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
+    await page.keyboard.press('`');
+    const tuner = page.locator('.tuner');
+    await expect(tuner).toBeVisible();
+    const rowLabels = () => tuner.locator('label.row > span').allTextContents();
+    let labels = await rowLabels();
+    expect(labels).toContain('animate');
+    expect(labels).not.toContain('time multiplier'); // hidden while animate is off
+    expect(labels).toContain('moment in the loop');
+    await tuner.getByText('animate', { exact: true }).click();
+    labels = await rowLabels();
+    expect(labels).toContain('time multiplier');
+    expect(labels).toContain('seconds per doubling');
+    // shader off hides everything beneath it
+    await tuner.getByText('shader', { exact: true }).click();
+    labels = await rowLabels();
+    expect(labels).not.toContain('animate');
+    expect(labels).not.toContain('moment in the loop');
+    await expect(page.locator('canvas')).toHaveCount(0);
+    await tuner.getByText('shader', { exact: true }).click();
+    await expect(page.locator('canvas')).toHaveCount(1);
+    // reroll: this poem's seed changes, the other poem's stays
+    const seedsBefore = await page.evaluate((slugs) =>
+      slugs.map((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}').seed), ROUTES.slice(0, 2));
+    await tuner.getByRole('button', { name: 'reroll this poem' }).click();
+    const seedsAfter = await page.evaluate((slugs) =>
+      slugs.map((s) => JSON.parse(localStorage.getItem(`bloom-page-v1:${s}`) || '{}').seed), ROUTES.slice(0, 2));
+    expect(seedsAfter[0]).not.toBe(seedsBefore[0]);
+    expect(seedsAfter[1]).toBe(seedsBefore[1]);
+    await expect(tuner.locator('.group').first()).toHaveText(`this poem · seed ${seedsAfter[0]}`);
   });
 });
