@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>sig-nav lab</title>
+<style>
+  /* the site's theme tokens, both palettes, no app import */
+  .light { --bg: hsl(0 13% 98%); --ink: #533737; --accent: #caa8d6; --accent-strong: #b077c5; --hr: #eeebe2; }
+  .dark  { --bg: hsl(345 9% 11%); --ink: hsl(9 25% 86%); --accent: #d3b3e0; --accent-strong: #e2c8ee; --hr: #453a3e; }
+  html, body { margin: 0; font: 12px/1.3 monospace; }
+  body { background: #888; }
+  .row { display: flex; align-items: flex-end; gap: 10px; padding: 10px 12px; color: var(--ink); background: var(--bg); position: relative; }
+  /* a strong cyan/magenta blot standing in for the shader ground */
+  .wash { background:
+      radial-gradient(ellipse 40% 80% at 22% 50%, rgb(0 200 230 / .75), transparent 70%),
+      radial-gradient(ellipse 35% 90% at 55% 40%, rgb(255 0 170 / .65), transparent 70%),
+      radial-gradient(ellipse 40% 80% at 85% 60%, rgb(0 220 255 / .7), transparent 70%),
+      var(--bg); }
+  .row > .tag { position: absolute; top: 4px; left: 8px; opacity: .6; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .cell small { opacity: .6; }
+  svg.art { color: var(--ink); --sig-paper: color-mix(in srgb, var(--bg) 92%, var(--accent) 8%); overflow: visible; }
+  .badge { display: inline-flex; align-items: center; justify-content: center; font: 700 1.5rem/1 'Noto Serif', Georgia, serif;
+    padding: .1em .2em; border-radius: .3em; color: var(--ink); border: 1px solid var(--hr);
+    background: color-mix(in srgb, var(--bg) 92%, var(--accent) 8%); }
+  .badge svg { display: block; }
+</style>
+</head>
+<body>
+<div id="rows"></div>
+<script type="module">
+  import { CALLA, ART_VERSION } from '/src/lib/sig-nav/art/calla.js';
+  import { HOVERFLY } from '/src/lib/sig-nav/art/hoverfly.js';
+  import { CHEVRON } from '/src/lib/sig-nav/art/chevron.js';
+
+  const q = new URLSearchParams(location.search);
+  const only = q.has('frame') ? Math.max(0, Math.min(CALLA.frames.length - 1, +q.get('frame'))) : null;
+  const H = +(q.get('size') || (only === null ? 150 : 420)); // lily height in px
+
+  // one <svg> stacking frames 0..k — exactly what the Flower renderer does
+  const stack = (k, h) => {
+    const w = Math.round(h * 120 / 160);
+    return `<svg class="art" viewBox="${CALLA.viewBox}" width="${w}" height="${h}">${CALLA.frames.slice(0, k + 1).join('')}</svg>`;
+  };
+  const fly = (beat, h) => `<svg class="art" viewBox="${HOVERFLY.viewBox}" width="${Math.round(h * 40 / 30)}" height="${h}">${HOVERFLY.wingBeat[beat]}${HOVERFLY.body}</svg>`;
+  const cell = (label, inner) => `<div class="cell">${inner}<small>${label}</small></div>`;
+
+  const row = (cls, tag) => {
+    const lilies = only === null
+      ? CALLA.frames.map((_, k) => cell(`0..${k}`, stack(k, H))).join('')
+      : cell(`0..${only}`, stack(only, H));
+    const flyH = only === null ? Math.round(H * 0.5) : Math.round(H * 0.28);
+    return `<section class="row ${cls}"><span class="tag">${tag} · art v${ART_VERSION}</span>${lilies}
+      ${cell('fly · wings up', fly(0, flyH))}${cell('fly · wings low', fly(1, flyH))}
+      ${cell('⌃ badge', `<span class="badge">${CHEVRON}</span>`)}</section>`;
+  };
+  document.getElementById('rows').innerHTML =
+    row('light', 'light') + row('light wash', 'light + cyan/magenta wash') +
+    row('dark', 'dark') + row('dark wash', 'dark + cyan/magenta wash');
+</script>
+</body>
+</html>

@@ -86,6 +86,78 @@ function of `t / loopT`, so the loop is bit-exact (verified by pixel-diff at `t`
   `tests/unit/`, their import/mount in `src/routes/+layout.svelte`, and
   `static/shader-lab.html`.
 
+## Signature nav
+
+Every poem's signature is the site's front door (first pass, 2026-08-23: one
+flower, both platforms). Source: `src/lib/sig-nav/` — mounted by
+`src/lib/components/ByLine.svelte`, which wraps the signature image in a real
+`<button aria-expanded aria-controls="sig-nav-garden">`.
+
+**Hover phase.** Pointing at the author line (mouse), tabbing to the signature
+(keyboard), or the first tap (phone) grows a hand-inked **calla lily** out of
+the signature: seven cumulative frames, each cross-fading in over ~1 s on a
+0.85 s beat (~6 s), grow-only — the overlap is the onion-skin. On a Mac
+desktop a `⌃` badge fades in beside the signature first. The flower lands in a
+free spot that touches the signature and covers no poem line: `measure.js`
+reads every rendered text line, `placement.js` (pure, unit-tested) scans
+candidate spots — above → beside → ragged-right → gutter — at 1×, 0.75×, 0.55×
+and picks one (seeded PRNG) that sits in the current viewport when it can;
+`garden.js` glues the two and falls back to a clamped "above" spot (flagged
+`fallback`) when nothing is free. Hover is a trigger, not a hold: leaving
+never cancels; re-entering is a no-op.
+
+**Click phase.** Clicking the signature or the badge, `Enter`/`Space` on the
+button, a bare `⌃` *tap*, or the phone's tap: a hoverfly flies in (~1.2 s) and
+perches on the spathe while the word **home** drops onto a torn-paper tag tied
+to the stem, Gilliam-credits style (per-letter, stepped, ±8° tilts, 90 ms
+stagger). The word is a real link to the first poem in `static/route.txt`
+(`/poems/<routes[0]>`, never `/`, which redirects at random). A click while
+the lily is still growing is queued. Once up, the garden stays through
+client-side poem changes (re-anchored, no regrowth) and resets on a real
+reload. State lives in `store.js` as a tagged union
+(`idle → blossoming → bloomed → labeling → labeled`) with transition functions
+only.
+
+**Keyboard (Mac desktop only — `keys.js`):** bare `⌃` tap = the click trigger
+(detected on key*up*; any other key, mouse button, scroll wheel, or window
+blur disarms it, so `⌃h`, `⌃`-click, `⌃`+wheel zoom and VoiceOver's pause key
+held with anything are never taps — a bare VoiceOver pause *is* one, an
+accepted trade-off); `⌃h` goes home from any poem. Every platform: `Tab` to
+the signature blossoms, `Enter` (or the `⌃` tap) lands the word and moves
+focus to it — which also scrolls it into view — unless you have Tabbed on
+elsewhere in the meantime. Hovering/focusing the word shows a `⌃h`
+keycap that fades 3 s *after* you leave (Mac desktop only).
+
+**Phones** (`pointer: coarse`): one tap runs both phases as one chain at 2.5×
+(~4.5 s); a second tap skips to the end. No badge, no hint; the signature's
+hit box is padded to ≥ 44 px. **Reduced motion:** every trigger jumps to the
+final pose with a single 350 ms fade, no sway. The lily sways ±2.5° over 6 s
+otherwise, holding still while you point at the word, while the tab is hidden,
+or while the signature is off-screen.
+
+- **Test hook:** `localStorage['sig-nav-test'] = '{"seed":11,"speed":0}'` pins
+  the placement PRNG and the speed multiplier (`0` = every phase instant);
+  with it set, `window.__sigNav` exposes `state`, `placement`, `local`,
+  `counters` (⌃ tap / ⌃h) and `diag` (`free`/`tried` candidates, the
+  `roomReport` per scale — the "is there room for a 2nd flower" reading, and
+  the obstacle list). Timings live in one table, `timing.js § TIMINGS`.
+- **Lab page:** `static/sig-nav-lab.html` — `/sig-nav-lab.html?frame=N` renders
+  the stacked frames, the fly and the chevron on light and dark grounds
+  straight from the art modules (`src/lib/sig-nav/art/`).
+- **Tests:** `pnpm test:unit` (placement engine) and `pnpm test:e2e`
+  (`tests/sig-nav.spec.ts`: hover/click/⌃/keyboard/persistence/viewport-width/
+  reduced-motion on desktop chromium, plus an `iphone` Playwright project —
+  `devices['iPhone 13']` run in chromium — limited to this spec).
+- **Known limits (first pass):** the runner stem is routed sideways-then-up
+  and can still cross a long last line; the word tag is clamped to the page,
+  not placed around text; the bare-⌃ tap has not yet had a live VoiceOver
+  check.
+- **To test removal:** delete `src/lib/sig-nav/`, `tests/sig-nav.spec.ts`,
+  `tests/unit/placement.unit.mjs`, `static/sig-nav-lab.html`, the `iphone`
+  project in `playwright.config.ts`; restore `ByLine.svelte` to the plain
+  `<span class="author">…<img class="sig"/></span>` and drop the one
+  `overflow-x: clip` line on `.app` in `src/routes/+layout.svelte`.
+
 ## Mobile testing (before every push)
 
 The dev server always listens on the LAN (`server.host: true` in
