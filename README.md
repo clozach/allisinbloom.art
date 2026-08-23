@@ -63,15 +63,36 @@ The dev server always listens on the LAN (`server.host: true` in
 included — no build, no deploy:
 
 - **iPhone:** `http://temps-macbook-pro.local:5199` (Bonjour name; survives
-  DHCP address changes). If `.local` ever fails, use the Mac's IP, e.g.
-  `http://192.168.1.146:5199`.
-- The port is whatever the dev server was started with (`5199` via the
-  `allisinbloom-dev` launcher; bare `pnpm run dev` defaults to `5173`).
+  DHCP address changes). If `.local` ever fails, use the "Network" URL vite
+  prints (`just agent-logs`), e.g. `http://192.168.1.145:5199`.
+- `5199` is the always-on server (below). A bare `pnpm run dev` starts a
+  second, throwaway instance on `5173`.
 
 Check a poem on the phone (stanza gaps, nav, type size) before pushing —
 the July-2025→Aug-2026 publish freeze hid a year of design drift, and
 mobile is where this site is mostly read. Note the LAN exposure: anyone on
 the same Wi-Fi can see the dev site while the server runs.
+
+## Always-on dev server (localhost:5199)
+
+`http://localhost:5199` is kept up 100% of the time by a macOS launchd
+LaunchAgent (`com.clozach.allisinbloom.dev`): it starts at login and restarts
+within seconds if it crashes or is killed (verified with `kill -9`). It runs
+`just _serve-dev` with a fixed PATH (fnm's default Node, pnpm, Homebrew), so
+it needs no shell hooks. Installed through the vault-wide `always-on` tool
+(`~/Documents/2-Ongoing/dot-to-dot/bin/always-on`) — the same mechanism as
+the stonks and finance-hub agents.
+
+| | |
+|---|---|
+| Install / reinstall | `just install-agent` |
+| Bounce (e.g. after a `vite.config.js` change) | `just restart-agent` |
+| State, pid, last exit | `just agent-status` |
+| Tail logs (`~/Library/Logs/allisinbloom/dev.{out,err}.log`) | `just agent-logs` |
+| Opt out | `just uninstall-agent` |
+
+Because launchd owns port 5199, never start another server there; the Claude
+preview launcher `allisinbloom-dev` simply attaches to it.
 
 ## Development
 
