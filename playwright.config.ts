@@ -23,14 +23,6 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] }
-    },
-    {
-      // Phone project for the signature nav only: a real touch device profile
-      // (hasTouch, coarse pointer, no hover). Runs in the installed chromium —
-      // iPhone 13 defaults to webkit, which is not installed here.
-      name: 'iphone',
-      testMatch: /sig-nav\.spec\.ts$/,
-      use: { ...devices['iPhone 13'], browserName: 'chromium' }
     }
   ]
 });

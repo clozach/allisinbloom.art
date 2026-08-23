@@ -193,7 +193,6 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
-		overflow-x: clip; /* a placed/swaying signature-nav flower can never widen the viewport */
 	}
 
 	main {
