@@ -38,7 +38,9 @@ function of `t / loopT`, so the loop is bit-exact (verified by pixel-diff at `t`
 `t + loopT`). Both palettes are hard-coded inside their accessibility bands (≥ 4.5:1
 under each theme's ink), so no tuning knob can break text contrast.
 
-- **Tuner panel:** on any poem page, press `` ` `` to open the "bloom tuner" — the
+- **Tuner panel:** on any poem page, press `` ` `` — or, on a phone, **long-press
+  the bottom-left corner of the screen** (an invisible 56 px hotspot; hold ~0.6 s
+  without moving) — to open the "bloom tuner"; ✕ closes it. Its controls: the
   shader on/off toggle, live sliders for every magic number, color pickers for the
   palette gradient endpoints (ground A→B and lace A→B, per theme), a theme override
   that flips the whole page, `copy values` (exports the current set to paste into

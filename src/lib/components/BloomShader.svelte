@@ -18,6 +18,36 @@
       import('./BloomTuner.svelte').then((m) => (TunerComp = m.default));
     }
   }
+  function closePanel() {
+    panelOpen = false;
+  }
+
+  // Touch front door: a long-press (600ms, finger held still) on the invisible
+  // bottom-left hotspot opens the panel — phones have no ` key.
+  const HOLD_MS = 600;
+  const HOLD_SLOP_PX = 12;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let holdTimer = null;
+  let holdX = 0;
+  let holdY = 0;
+  function cancelHold() {
+    if (holdTimer) clearTimeout(holdTimer);
+    holdTimer = null;
+  }
+  /** @param {PointerEvent} e */
+  function onHoldStart(e) {
+    cancelHold();
+    holdX = e.clientX;
+    holdY = e.clientY;
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      togglePanel();
+    }, HOLD_MS);
+  }
+  /** @param {PointerEvent} e */
+  function onHoldMove(e) {
+    if (holdTimer && Math.hypot(e.clientX - holdX, e.clientY - holdY) > HOLD_SLOP_PX) cancelHold();
+  }
 
   // Every magic number in the shader, live-tunable from the tuner panel
   // (press ` on a poem page; slider metadata lives in BloomTuner.svelte).
@@ -445,6 +475,21 @@ void main() {
   </div>
 {/if}
 
+<!-- invisible long-press hotspot (bottom-left) — the touch way into the tuner;
+     also keyboard-reachable: Tab to it and press Enter/Space -->
+<button
+  class="egg"
+  type="button"
+  aria-label="Open bloom tuner"
+  on:pointerdown={onHoldStart}
+  on:pointermove={onHoldMove}
+  on:pointerup={cancelHold}
+  on:pointercancel={cancelHold}
+  on:pointerleave={cancelHold}
+  on:contextmenu|preventDefault
+  on:click={(e) => e.detail === 0 && togglePanel()}
+></button>
+
 {#if panelOpen && TunerComp}
   <svelte:component
     this={TunerComp}
@@ -454,10 +499,34 @@ void main() {
     {onTweak}
     {applyTheme}
     {resetTune}
+    onClose={closePanel}
   />
 {/if}
 
 <style>
+  .egg {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 56px;
+    height: 56px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    opacity: 0;
+    z-index: 50;
+    -webkit-touch-callout: none;
+    user-select: none;
+    touch-action: none; /* hold must not scroll or zoom the page */
+    cursor: default;
+  }
+  .egg:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--accent-strong, #b077c5);
+    outline-offset: -4px;
+    border-radius: 8px;
+  }
   .cloud {
     position: fixed;
     inset: 0;

@@ -46,6 +46,8 @@
   export let onTweak;
   export let applyTheme;
   export let resetTune;
+  /** @type {() => void} */
+  export let onClose = () => {};
 
   let copied = false;
 
@@ -63,7 +65,10 @@
   <div class="tuner-head">
     <strong>bloom tuner</strong>
     <span class="hud">{hud}</span>
-    <span class="hint">` to close</span>
+    <span class="head-right">
+      <span class="hint">` to close</span>
+      <button class="close" type="button" aria-label="Close bloom tuner" on:click={onClose}>✕</button>
+    </span>
   </div>
   <label class="row">
     <span>shader</span>
@@ -134,9 +139,30 @@
   .tuner-head .hud {
     color: #9d8fa6;
   }
-  .tuner-head .hint {
+  .tuner-head .head-right {
     margin-left: auto;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .tuner-head .hint {
     color: #776a80;
+  }
+  @media (pointer: coarse) {
+    .tuner-head .hint {
+      display: none; /* no ` key on a phone; the ✕ is the way out */
+    }
+  }
+  .tuner-head .close {
+    background: none;
+    border: 1px solid rgb(255 255 255 / 0.2);
+    border-radius: 4px;
+    color: inherit;
+    font: inherit;
+    line-height: 1;
+    padding: 4px 7px;
+    min-width: 28px;
+    min-height: 28px;
   }
   .row {
     display: grid;
@@ -146,9 +172,9 @@
     margin: 2px 0;
   }
   .row span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* labels wrap rather than truncate — every string stays readable */
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .row input[type='range'] {
     width: 110px;

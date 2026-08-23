@@ -50,3 +50,28 @@ test.describe('Home redirects to a poem', () => {
     });
   }
 });
+
+// The bloom tuner's touch front door: a long-press on the invisible
+// bottom-left hotspot opens it (phones have no ` key); ✕ closes it.
+test.describe('Bloom tuner on touch', () => {
+  test('long-press hotspot opens the tuner, ✕ closes it', async ({ page }) => {
+    await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
+    await expect(page.locator('.tuner')).toHaveCount(0);
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    // short tap does nothing
+    await page.mouse.move(20, vp.height - 20);
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    await expect(page.locator('.tuner')).toHaveCount(0);
+    // hold for the long-press threshold
+    await page.mouse.down();
+    await page.waitForTimeout(800);
+    await page.mouse.up();
+    await expect(page.locator('.tuner')).toBeVisible();
+    await expect(page.locator('.tuner .row span').first()).toHaveText('shader');
+    await page.getByRole('button', { name: 'Close bloom tuner' }).click();
+    await expect(page.locator('.tuner')).toHaveCount(0);
+  });
+});
