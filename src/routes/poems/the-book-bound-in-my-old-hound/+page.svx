@@ -50,10 +50,3 @@ of an ancient loved-one on my tongue
 twirling face-up to the cycling sky
 
 ■
-
-<style>
-  /* This poem has long lines! Reduce font size while keeping responsiveness */
-  :global(.poem-container) {
-    font-size: 0.7em; 
-  }
-</style>
