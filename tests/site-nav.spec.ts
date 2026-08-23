@@ -48,6 +48,24 @@ test.describe('Site nav', () => {
     expect(color).toBe(ink);
   });
 
+  test('the previous/next titles carry no º mark — arrows and whitespace suffice', async ({ page }) => {
+    await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
+    for (const sel of ['.nav-link.prev', '.nav-link.next']) {
+      const after = await page.locator(sel).evaluate((el) => getComputedStyle(el, '::after').content);
+      expect(after, `${sel} ::after`).toBe('none');
+    }
+    // the site-wide º still applies to links in prose (regression guard for the global rule)
+    const prose = await page.evaluate(() => {
+      const a = document.createElement('a');
+      a.href = '/';
+      document.body.append(a);
+      const c = getComputedStyle(a, '::after').content;
+      a.remove();
+      return c;
+    });
+    expect(prose).toContain('º');
+  });
+
   test('the butterfly is still there on the first and last poems', async ({ page }) => {
     for (const slug of [ROUTES[0], ROUTES[ROUTES.length - 1]]) {
       await page.goto(`/poems/${slug}`, { waitUntil: 'networkidle' });

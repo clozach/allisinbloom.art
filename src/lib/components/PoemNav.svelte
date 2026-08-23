@@ -80,6 +80,11 @@
   .nav-link:hover {
     opacity: 1;
   }
+  /* no º here: in the poem nav the arrows and the whitespace already say
+     "link" (Al, 2026-08-23) — the site-wide a::after mark is for links in prose */
+  .nav-link::after {
+    content: none;
+  }
 
   .nav-link.next {
     margin-left: auto;
