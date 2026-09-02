@@ -85,4 +85,10 @@
 	.download-button:hover {
 		background-color: #2a3c35;
 	}
+
+	/* A button-shaped link carries no º: the site-wide a::after mark
+	   (+layout.svelte) is for links in prose. */
+	.download-button::after {
+		content: none;
+	}
 </style>

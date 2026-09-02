@@ -65,6 +65,12 @@
     margin-bottom: 0.75rem;
     font-size: 0.9rem;
   }
+
+  /* The site-wide º link-mark (+layout.svelte) is for links in prose; a card
+     is already a link by shape, so the mark must not trail its last line. */
+  .poem-item::after {
+    content: none;
+  }
   
 
 </style>
