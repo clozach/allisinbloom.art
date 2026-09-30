@@ -8,6 +8,14 @@ A collection of poems and prose, built with mdsvex and notion.
 - GitHub API
 - Vercel
 
+## Figma workshop
+
+[Open the editable design workshop](https://www.figma.com/design/YM1B3KmYzdYj4o7pL3tC5y?node-id=13-2).
+The [Figma workflow and source map](docs/figma-workflow.md) explain where to
+experiment, how components map back to this repository, and how to hand a
+specific frame to Codex for a tested production change. The pilot covers the
+poem page, navigation and index-card components; Figma edits do not deploy the site.
+
 ## TODO
 - [ ] Configure navigation using `gelato` (https://github.com/bradistewart/gelato)
 - [ ] Add the title of every poem in static/route.txt to the command palette.
@@ -24,8 +32,9 @@ Two quiet links on every poem page (2026-08-23):
   unnamed on the page: the tooltip (`title="home"`) and the accessible name
   carry the word; the global `a::after` º is suppressed on it.
 - **A Bluesky butterfly** (`src/lib/components/PoemNav.svelte`, `.sky`) sits at
-  the exact centre between the previous/next titles — grid `1fr auto 1fr`,
-  1 rem gaps, body ink (`--ink`), opens `bsky.app/profile/allisinbloom.bsky.social`
+  the exact centre between the previous/next titles — a flex row with
+  `space-between` and negative half-width butterfly margins, 0.75 rem of air
+  per side, body ink (`--ink`), opens `bsky.app/profile/allisinbloom.bsky.social`
   in a new tab. The nav now renders on every poem page, first and last included.
 
 Tests: `tests/site-nav.spec.ts`. To test removal: unwrap the image in
