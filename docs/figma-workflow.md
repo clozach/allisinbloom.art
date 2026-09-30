@@ -10,11 +10,13 @@ This pilot reconstructs the current **local source**, commit `67a2fa7aacb12d123d
 | --- | --- |
 | 00 · Start here | A short guide to the design/implementation loop |
 | 01 · Foundations | Light/Dark colors, source layout values, ten shared text styles |
-| 02 · Components | Eight component families and a compact review board of instances |
-| 03 · Current site | Source-matched `opening in sight` at desktop 1440×1000 and phone 390×844, Light/Dark |
+| 02 · Components | Eight base component families, a rich Book content composition, and review instances |
+| 03 · Current site | `the book bound in my old hound` at desktop/phone widths, Light/Dark; full-length frames |
 | 04 · Your experiments | Duplicate one example, name it, then edit its connected instances |
 
-Begin with instance overrides. The Poem instance exposes its title, verse and navigation components in the properties panel. Double-click through nested components when changing spacing or typography. Keep instances connected when possible. A deliberate main-component edit propagates to **both** Current site and Your experiments; locking the baseline frame would not freeze inherited changes. Browser evidence and the source commit preserve the original baseline.
+The reference and experiment copies now use [the book bound in my old hound](https://allisinbloom.art/poems/the-book-bound-in-my-old-hound), verified against the live page on 29 September 2026. The frames extend to approximately 1440×2235 and 390×1767 so the whole poem remains visible; top/bottom spacing is sampled from 1440×1000 and 390×844 browser viewports.
+
+Begin with instance overrides. The Poem instance exposes its title, verse and navigation components in the properties panel. Double-click through nested components when changing spacing or typography. The rich opening stanza is edited directly as text to preserve its inline italics; the other stanza fields are exposed properties. Keep instances connected when possible. A deliberate main-component edit propagates to **both** Current site and Your experiments; locking the baseline frame would not freeze inherited changes. Browser evidence and the source commit preserve the original baseline.
 
 Figma examples are breakpoint specimens. Figma does not run the website's CSS media queries: desktop/phone variants capture the `568px` type-size breakpoint, and the phone byline is sampled at 390px. The browser remains the authority for fluid widths, long titles, narrow phones and responsive behavior.
 
@@ -24,6 +26,7 @@ Figma examples are breakpoint specimens. Figma does not run the website's CSS me
 | --- | --- | --- | --- |
 | PoemTitle | `10:22` | `src/lib/components/PoemTitle.svelte` | Title; Desktop/Phone |
 | PoemContent | `10:23` | `src/lib/components/PoemContent.svelte` | Verse with explicit line breaks; Desktop/Phone |
+| PoemContent/Book | `29:170` | `src/routes/poems/the-book-bound-in-my-old-hound/+page.svx` through `PoemContent.svelte` | Desktop/Phone; five text paragraphs, preserved indentation/italics, real divider |
 | ByLine | `10:24` | `src/lib/components/ByLine.svelte` | Desktop/Phone; original signature asset tinted with theme ink |
 | NavLink | `10:43` | `src/lib/components/PoemNav.svelte` | Label; Previous/Next × Default/Hover/Focus |
 | Bluesky | `10:54` | `src/lib/components/PoemNav.svelte` | Original vector; Default/Hover/Focus |
@@ -72,7 +75,7 @@ Before shipping an actual design change:
 5. Deploy through the site's established release workflow once the concrete change is approved. Never push unrelated unshipped commits merely to publish a design tweak.
 6. Update the Figma baseline and this source map after the accepted implementation lands. This is an intentional reconciliation step, not unattended two-way synchronization.
 
-## Pilot verification
+## Pilot verification (initial short-poem build)
 
 - Eight main sets / 23 variants, ten shared text styles, three variable collections; native editable text and component instances.
 - Four Current site exemplars and four experiment copies: desktop/phone × Light/Dark.
@@ -81,7 +84,9 @@ Before shipping an actual design change:
 - A longer phone title was set through its exposed text property. It reflowed from one line to two and moved the verse/signature/nav down without overlap. Restoring the original yielded a byte-identical screenshot to the pre-test Figma frame.
 - Temporary web capture was removed after rebuilding the components. The temporary source capture script was removed; `src/app.html` matches its original bytes. No application source remains modified by this pilot.
 
-Still outside this pilot: other poem layouts/content, shader/tuner design, a full index-page composition, animated prototypes, official Code Connect publishing, and the separate Swami KK library. The prototype frames do not implement real keyboard navigation or routes; these remain owned and tested in code.
+The replacement adds two rich-content variants (nine sets / 25 variants total), plus desktop/phone italic and end-mark styles (14 styles total). Eight full-length copies retain the exact rendered paragraphs, NBSP indentation, italic phrase and closing square; Last navigation shows the previous poem only. Navigation dividers now scale to 30% of their available column. The small square uses a documented Figma-only optical font-size adjustment to match the browser fallback glyph; do not copy that adjustment into CSS. Long-page text rounding accumulates to about 4–6px versus the browser.
+
+Still outside this pilot: remaining poem layouts/content, shader/tuner design, a full index-page composition, animated prototypes, official Code Connect publishing, and the separate Swami KK library. The prototype frames do not implement real keyboard navigation or routes; these remain owned and tested in code.
 
 ## Undo and resume
 
