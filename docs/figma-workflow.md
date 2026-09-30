@@ -20,6 +20,16 @@ Begin with instance overrides. The Poem instance exposes its title, verse and na
 
 Figma examples are breakpoint specimens. Figma does not run the website's CSS media queries: desktop/phone variants capture the `568px` type-size breakpoint, and the phone byline is sampled at 390px. The browser remains the authority for fluid widths, long titles, narrow phones and responsive behavior.
 
+## Add another poem
+
+Duplicate a frame in **04 · Your experiments**, rename it, then select the **Poem instance inside the frame**. Al's second poem, [the world behind the world shifted](https://www.figma.com/design/YM1B3KmYzdYj4o7pL3tC5y?node-id=38-321), is a working example.
+
+In the right panel, expand **Footer · choose directions** and set **Footer links** to **Both directions**, **Next only**, or **Previous only**. Choose the matching **Viewport** within that footer. Then edit **Previous poem → Label** and **Next poem → Label** in the same panel. Choose the footer state before entering the labels; switching between variants with absent links can restore a variant's default label. Phone and Desktop are separate layout specimens. The Phone two-way footer wraps its long titles; its 390px widths follow the live second poem.
+
+For verse indentation, edit the actual text layer and select the line you want to indent. Figma's native control is **Typography → Type settings → Details → Paragraph indent**. Keep hard Returns between lines and paragraph spacing at zero. The repaired phone example uses **27.96875px** (28px is practical to type); the corresponding desktop indent is **39.9375px** (about 40px). Use zero for a flush-left line. You can also duplicate an already indented line and replace its words.
+
+**Plain Tab is not a browser tab stop in Figma.** This poem's website source is a fenced block containing literal tabs, rendered with `tab-size: 8`; its Figma copy now represents those four leading tabs as paragraph indentation. Ordinary Markdown poems use a different source transform (six nonbreaking spaces per leading tab). During implementation, translate the chosen indentation back into the appropriate source format; do not insert arbitrary CSS or rewrite the poem's punctuation to match a Figma measurement. The native per-paragraph control is documented in the [Figma API](https://developers.figma.com/docs/plugins/api/TextNode/) and [December 2024 update](https://developers.figma.com/docs/plugins/updates/2024/12/13/version-1-update-105/).
+
 ## Source map
 
 | Figma family | Main set | Production owner | Editable/state coverage |
@@ -30,7 +40,7 @@ Figma examples are breakpoint specimens. Figma does not run the website's CSS me
 | ByLine | `10:24` | `src/lib/components/ByLine.svelte` | Desktop/Phone; original signature asset tinted with theme ink |
 | NavLink | `10:43` | `src/lib/components/PoemNav.svelte` | Label; Previous/Next × Default/Hover/Focus |
 | Bluesky | `10:54` | `src/lib/components/PoemNav.svelte` | Original vector; Default/Hover/Focus |
-| PoemNav | `10:87` | `src/lib/components/PoemNav.svelte` | First/Middle/Last; nested link labels |
+| PoemNav | `10:87` | `src/lib/components/PoemNav.svelte` | Footer links: Next only/Both directions/Previous only × Desktop/Phone; exposed Previous poem and Next poem labels |
 | Poem | `10:134` | `src/lib/components/Poem.svelte`, `src/routes/poems/_poem.svelte` | Desktop/Phone; nested title, verse, nav exposed |
 | PoemCard | `10:144` | `src/routes/poems/+page.svelte` | Title/Date; Default/Hover/Focus |
 
@@ -85,6 +95,8 @@ Before shipping an actual design change:
 - Temporary web capture was removed after rebuilding the components. The temporary source capture script was removed; `src/app.html` matches its original bytes. No application source remains modified by this pilot.
 
 The replacement adds two rich-content variants (nine sets / 25 variants total), plus desktop/phone italic and end-mark styles (14 styles total). Eight full-length copies retain the exact rendered paragraphs, NBSP indentation, italic phrase and closing square; Last navigation shows the previous poem only. Navigation dividers now scale to 30% of their available column. The small square uses a documented Figma-only optical font-size adjustment to match the browser fallback glyph; do not copy that adjustment into CSS. Long-page text rounding accumulates to about 4–6px versus the browser.
+
+The second-poem repair adds three Phone footer variants (28 total), exposes both link labels at the Poem level, and renames the navigation choices to explicit directions. Al's frame `38:320` preserves his edits, with four native paragraph indents and the correct previous/next titles. The saved frame remains a connected instance. Verification includes the rendered result, visible property-panel fields, per-line indent change/restoration through the Figma API, and intact original reference content. The exact manual Typography click sequence was not exercised end to end; native Tab behavior has not been changed. No application source or production deployment accompanies this repair.
 
 Still outside this pilot: remaining poem layouts/content, shader/tuner design, a full index-page composition, animated prototypes, official Code Connect publishing, and the separate Swami KK library. The prototype frames do not implement real keyboard navigation or routes; these remain owned and tested in code.
 
