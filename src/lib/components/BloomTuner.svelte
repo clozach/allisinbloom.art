@@ -6,6 +6,7 @@
   // propsheet contract (label above; drag the icon to scrub, click to type).
   import { onMount } from 'svelte';
   import NumberField from './NumberField.svelte';
+  import PipelineCard from './PipelineCard.svelte';
 
   // step = per-px scrub step and ↑/↓ nudge; decimals follow from it
   const PARAMS = [
@@ -114,6 +115,7 @@
       <button class="close" type="button" aria-label="Close bloom tuner" on:click={onClose}>✕</button>
     </span>
   </div>
+  <PipelineCard />
   <div class="row">
     <label class="cell"><span>shader</span><input type="checkbox" bind:checked={prefs.shaderOn} on:change={onPrefs} /></label>
     <span class="dice-cell">

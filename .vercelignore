@@ -1,0 +1,6 @@
+.git
+node_modules
+.svelte-kit
+.vercel
+private-sources
+# Draft JSON is intentionally included in protected direct Preview deployments.

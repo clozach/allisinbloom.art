@@ -265,9 +265,12 @@ void main() {
   onMount(() => {
     /** @param {KeyboardEvent} e */
     const onKey = (e) => {
+      if (e.key === 'Escape' && panelOpen) closePanel();
       if (e.key === '`' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (e.repeat) return;
         const t = /** @type {HTMLElement | null} */ (e.target);
         if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+        e.preventDefault();
         togglePanel();
       }
     };

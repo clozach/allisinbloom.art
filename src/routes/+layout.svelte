@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import PoemNav from '$lib/components/PoemNav.svelte';
 	import BloomShader from '$lib/components/BloomShader.svelte';
+	import PipelineDrawer from '$lib/components/PipelineDrawer.svelte';
 
 	// Get routes and poem titles from layout data
 	$: routes = $page.data.routes || ['opening-in-sight'];
@@ -49,6 +50,7 @@
 			if (!isPoemPage) return;
 			if (e.metaKey || e.ctrlKey || e.altKey) return;
 			const t = e.target as HTMLElement | null;
+			if (t?.closest('.tuner, .pipeline-dashboard')) return;
 			if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|AUDIO|VIDEO)$/.test(t.tagName)))
 				return;
 			if (e.key === 'ArrowLeft' || e.key === '<' || e.key === 'j' || e.key === ',') {
@@ -72,6 +74,8 @@
 
 {#if isPoemPage}
 	<BloomShader slug={currentRoute} />
+{:else}
+  <PipelineDrawer />
 {/if}
 
 <div class="app">

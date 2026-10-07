@@ -28,3 +28,7 @@ test-results
 
 # Claude Code local permissions
 .claude/settings.local.json
+
+# Notion drafts stay local and in authenticated Vercel previews until approved.
+src/lib/server/drafts/*.json
+private-sources/

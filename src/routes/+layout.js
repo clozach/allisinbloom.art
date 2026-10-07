@@ -1,6 +1,6 @@
 import { getAllPoems } from '$lib/poemUtils.js';
 
-/** @type {import('@sveltejs/kit').Load} */
+/** @type {import('./$types').LayoutLoad} */
 export async function load({ fetch, data }) {
   // Build a slug → title map from poem metadata
   const allPoems = getAllPoems();
@@ -9,11 +9,12 @@ export async function load({ fetch, data }) {
   for (const poem of allPoems) {
     poemTitles[poem.slug] = poem.title;
   }
+  for (const poem of data.draftPoems || []) poemTitles[poem.slug] = poem.title;
 
   try {
     const response = await fetch('/route.txt');
     const text = await response.text();
-    const routes = text.split('\n').filter(route => route.trim() !== '');
+    const routes = [...text.split('\n').filter(route => route.trim() !== ''), ...(data.draftPoems || []).map(poem => poem.slug)];
     return {
       ...data,
       routes,

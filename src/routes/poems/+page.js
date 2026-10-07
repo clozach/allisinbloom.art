@@ -1,8 +1,9 @@
 import { getAllPoems } from '$lib/poemUtils';
 
 /** @type {import('./$types').PageLoad} */
-export function load() {
-  const poems = getAllPoems();
+export async function load({ parent }) {
+  const data = await parent();
+  const poems = [...getAllPoems(), ...(data.draftPoems || [])];
   
   return {
     poems

@@ -8,6 +8,13 @@ A collection of poems and prose, built with mdsvex and notion.
 - GitHub API
 - Vercel
 
+## Publishing pipeline
+
+Press backtick for **dev → staging → production**, CI checks and release review.
+On a phone, hold the bottom-left corner. Staging uses an authenticated Vercel
+Preview; production publication requires Al's approval. [Publishing and private
+draft handling](docs/publishing.md) describes the CI checks, source boundary and rollback.
+
 ## Figma workshop
 
 [Open the editable design workshop](https://www.figma.com/design/YM1B3KmYzdYj4o7pL3tC5y?node-id=13-2).
@@ -20,7 +27,7 @@ poem page, navigation and index-card components; Figma edits do not deploy the s
 - [ ] Configure navigation using `gelato` (https://github.com/bradistewart/gelato)
 - [ ] Add the title of every poem in static/route.txt to the command palette.
 - [ ] (user-activity): populate the rest of the file & add more poems to flesh out the site some more.
-- [ ] Write scripts to push to a preview branch, then add an automation so it happens without effort on every commit
+- [x] Staging branch previews via Vercel Git integration, with CI on pushes and pull requests.
 
 ## Site nav (signature = home, butterfly = Bluesky)
 
