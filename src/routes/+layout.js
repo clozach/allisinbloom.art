@@ -1,7 +1,8 @@
 import { getAllPoems } from '$lib/poemUtils.js';
+import routeText from '../../static/route.txt?raw';
 
 /** @type {import('./$types').LayoutLoad} */
-export async function load({ fetch, data }) {
+export function load({ data }) {
   // Build a slug → title map from poem metadata
   const allPoems = getAllPoems();
   /** @type {Record<string, string>} */
@@ -11,21 +12,6 @@ export async function load({ fetch, data }) {
   }
   for (const poem of data.draftPoems || []) poemTitles[poem.slug] = poem.title;
 
-  try {
-    const response = await fetch('/route.txt');
-    const text = await response.text();
-    const routes = [...text.split('\n').filter(route => route.trim() !== ''), ...(data.draftPoems || []).map(poem => poem.slug)];
-    return {
-      ...data,
-      routes,
-      poemTitles
-    };
-  } catch (error) {
-    console.error('Failed to load routes:', error);
-    return {
-      ...data,
-      routes: ['opening-in-sight'],
-      poemTitles
-    };
-  }
+  const routes = [...routeText.split('\n').map(route => route.trim()).filter(Boolean), ...(data.draftPoems || []).map(poem => poem.slug)];
+  return { ...data, routes, poemTitles };
 }

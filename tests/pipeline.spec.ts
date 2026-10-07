@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+test('protected asset responses cannot turn into poem links', async ({ page }) => {
+  await page.route('**/route.txt', route => route.fulfill({ contentType: 'text/html', body: '<html>Sign in to Vercel</html>' }));
+  await page.goto('/poems/opening-in-sight', { waitUntil: 'networkidle' });
+  await expect(page.locator('.nav-link.next')).toHaveAttribute('href', '/poems/catch-this-kite-to-feel-st-elmos-fire');
+});
+
 test('backtick opens the three environments on poem and prose pages; Escape closes', async ({ page }) => {
   for (const path of ['/poems/opening-in-sight', '/clearing-song']) {
     await page.goto(path, { waitUntil: 'networkidle' });

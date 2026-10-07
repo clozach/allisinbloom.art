@@ -1,4 +1,5 @@
 <script>
+	export let label = 'by';
 	import { page } from '$app/stores';
 	// The signature is the site's home link: the first poem in static/route.txt
 	// (never `/`, which redirects to a random poem). Unnamed on the page — the
@@ -7,7 +8,7 @@
 </script>
 
 <span class="author"
-	><span class="by">by</span><a
+	><span class="by">{label}</span><a
 		class="sig-link"
 		href={homeHref}
 		title="home"

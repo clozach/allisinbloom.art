@@ -23,3 +23,11 @@ Direct preview: from the linked staging checkout, `vercel deploy --target previe
 ## Production preparation and rollback
 
 After Al approves both text and public availability, copy the accepted sources into tracked poem pages, remove the private copies, rerun CI, and review the full main…staging comparison. Then publish only the approved commit. Vercel retains prior deployments; use its deployment dashboard to restore the last accepted production build if needed. A production deploy, promotion or rollback requires its own authorization. No browser-facing deployment endpoint or long-lived credential has been added.
+
+## Source import and owner review
+
+Materialize the private Bluesky/Notion source manifest outside the public checkout, then run `node scripts/import-poems.mjs /absolute/path/to/manifest.json`. It imports confirmed latest Poems records and clearly labelled standalone matches, preserves the selected literal text and layout, and writes an ignored server-side inventory. `/review/poems` links every imported page to its exact Notion source and original Bluesky posting, with unresolved matches and layout choices kept visible.
+
+Local draft verification runs on loopback only (`pnpm dev --host 127.0.0.1 --port 5211 --strictPort`). Do not copy these ignored sources to the always-on LAN development checkout. `tests/private-poems.spec.ts` verifies every imported page on desktop Chromium and iPhone WebKit when the private files are present; public CI explicitly skips that source-dependent test and still runs the renderer, build and dashboard regression tests.
+
+Code-block poems preserve literal Markdown punctuation and whitespace in a monospace face. Long code lines scroll within their own block on narrow screens, preserving indentation instead of rewriting line breaks. Rich-text poems retain soft breaks, emphasis and explicit empty blocks. The inventory records title-as-poem lines, attribution, source selection and version warnings. Source-page research and unrelated media remain linked in Notion for review.

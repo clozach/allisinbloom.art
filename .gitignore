@@ -32,3 +32,6 @@ test-results
 # Notion drafts stay local and in authenticated Vercel previews until approved.
 src/lib/server/drafts/*.json
 private-sources/
+
+src/lib/server/review/*.json
+evidence/

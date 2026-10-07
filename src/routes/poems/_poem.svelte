@@ -2,12 +2,14 @@
   import Poem from '$lib/components/Poem.svelte';
   // front-matter fields are passed in automatically by mdsvex
   export let title = '';
+  export let showTitle = true;
+  export let byline = 'by';
   /** per-poem type scale (front-matter `scale: 0.85` for long-lined poems) */
   export let scale = 1;
 </script>
 
 <div class="poem-container" style="--poem-scale: {scale}">
-  <Poem {title}>
+  <Poem {title} {showTitle} {byline}>
     <slot />
   </Poem>
 </div>

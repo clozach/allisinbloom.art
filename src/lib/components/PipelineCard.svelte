@@ -1,4 +1,5 @@
 <script>
+  import { page } from '$app/stores';
   import { build, environments, reviewUrl, checksUrl } from '$lib/pipeline.js';
 </script>
 
@@ -6,7 +7,7 @@
   <div class="pipeline-heading"><strong>dev → staging → production</strong></div>
   <nav aria-label="Site environments">
     {#each environments as environment}
-      <a href={environment.url} target="_blank" rel="noopener noreferrer" aria-current={build.environment === environment.id ? 'location' : undefined}>
+      <a href={environment.id === 'staging' && build.environment === 'staging' ? $page.url.origin : environment.url} target="_blank" rel="noopener noreferrer" aria-current={build.environment === environment.id ? 'location' : undefined}>
         <span class:current={build.environment === environment.id} class="light" aria-hidden="true"></span>
         <span>{environment.label}</span>
         <small>{build.environment === environment.id ? `${build.revision.slice(0, 8)} · here` : environment.description}</small>
@@ -17,6 +18,7 @@
     <a href={checksUrl} target="_blank" rel="noopener noreferrer">CI checks ↗</a>
     <a href={reviewUrl} target="_blank" rel="noopener noreferrer">Review release ↗</a>
   </div>
+  {#if $page.data.draftPoems?.length}<p><a href="/review/poems">Poem review & sources →</a></p>{/if}
   <p>Production release needs Al’s approval.</p>
 </section>
 

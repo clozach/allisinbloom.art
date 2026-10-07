@@ -4,3 +4,7 @@ node_modules
 .vercel
 private-sources
 # Draft JSON is intentionally included in protected direct Preview deployments.
+
+evidence
+test-results
+playwright-report

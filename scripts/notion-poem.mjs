@@ -4,32 +4,39 @@ export function escapeHtml(text) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-export function inline(text) {
+export function inline(text, escaped = []) {
+  // Protect escaped Markdown punctuation before interpreting emphasis.
+  text = text.replace(/\\([\\`*_{}\[\]()#+.!~-])/g, (_, value) => { escaped.push(value); return `\uE000${escaped.length - 1}\uE001`; });
   const tokens = /\*\*(.+?)\*\*|__(.+?)__|~~(.+?)~~|\*(.+?)\*|_(.+?)_|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)|<span\s+underline(?:="true")?>(.*?)<\/span>/g;
   let html = '', from = 0, match;
   while ((match = tokens.exec(text))) {
     html += escapeHtml(text.slice(from, match.index));
     const value = match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? match[6] ?? match[7] ?? match[9];
     if (match[8]) {
+      const href = match[8].replace(/^<|>$/g, '');
       let safe = false;
-      try { safe = ['https:', 'http:', 'mailto:'].includes(new URL(match[8]).protocol); } catch {}
-      html += safe ? `<a href="${escapeHtml(match[8])}" rel="noopener noreferrer">${inline(value)}</a>` : escapeHtml(match[0]);
+      try { safe = ['https:', 'http:', 'mailto:'].includes(new URL(href).protocol); } catch {}
+      html += safe ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${inline(value, escaped)}</a>` : escapeHtml(match[0]);
     } else {
       const tag = match[1] || match[2] ? 'strong' : match[3] ? 'del' : match[6] ? 'code' : match[9] ? 'u' : 'em';
-      html += `<${tag}>${tag === 'code' ? escapeHtml(value) : inline(value)}</${tag}>`;
+      html += `<${tag}>${tag === 'code' ? escapeHtml(value) : inline(value, escaped)}</${tag}>`;
     }
     from = match.index + match[0].length;
   }
-  return html + escapeHtml(text.slice(from));
+  return (html + escapeHtml(text.slice(from))).replace(/\uE000(\d+)\uE001/g, (_, index) => escapeHtml(escaped[Number(index)]));
 }
 
-export function renderPoem(markdown) {
+export function renderPoem(markdown, format = 'notion-paragraphs') {
+  if (format === 'preformatted' || format === 'title-poem') {
+    return { html: `<div class="verse ${format === 'preformatted' ? 'preformatted' : 'title-verse'}">${escapeHtml(markdown)}</div>`, warnings: [] };
+  }
+  markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
   const warnings = [];
   const lines = markdown.replace(/\r\n/g, '\n').split('\n');
   const blocks = [];
   let verse = [], fenced = false;
   function flush() {
-    if (verse.length) blocks.push(`<div class="verse stanza">${verse.map(inline).join('\n')}</div>`);
+    if (verse.length) blocks.push(`<div class="verse stanza">${verse.map(line => inline(line)).join('\n')}</div>`);
     verse = [];
   }
   for (const line of lines) {

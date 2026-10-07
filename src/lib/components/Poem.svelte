@@ -8,13 +8,15 @@
    * The poem body is provided via the default slot compiled by mdsvex.
    */
   export let title = '';
+  export let showTitle = true;
+  export let byline = 'by';
 </script>
 
 <div class="poem">
-  <PoemTitle>{title}</PoemTitle>
+  {#if showTitle}<PoemTitle>{title}</PoemTitle>{/if}
   <PoemContent>
     <slot />
   </PoemContent>
-  <ByLine />
+  <ByLine label={byline} />
 </div>
 
