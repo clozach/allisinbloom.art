@@ -1,16 +1,19 @@
 <script>
-  /**
-   * @typedef {Object} PoemTitleProps
-   * @property {string} title - The title of the poem
-   */
+	/** @type {HTMLDivElement | undefined} */
+	export let element = undefined;
+	/**
+	 * @typedef {Object} PoemTitleProps
+	 * @property {string} title - The title of the poem
+	 */
 </script>
 
-<div class="poem-title"><slot></slot></div>
+<div class="poem-title" bind:this={element}><slot></slot></div>
 
 <style>
-  .poem-title {
-    font-family: 'Noto Serif Display', serif;
-    font-stretch: semi-condensed;
-    font-weight: bold;
-  }
+	.poem-title {
+		white-space: pre-wrap;
+		font-family: 'Noto Serif Display', serif;
+		font-stretch: semi-condensed;
+		font-weight: bold;
+	}
 </style>

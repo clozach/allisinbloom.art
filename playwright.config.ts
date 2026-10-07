@@ -26,7 +26,7 @@ export default defineConfig({
     },
     {
       name: 'iphone-webkit',
-      testMatch: /(?:pipeline|private-poems)\.spec\.ts/,
+      testMatch: /(?:pipeline|private-poems|inline-edit)\.spec\.ts/,
       use: { ...devices['iPhone 13'] }
     }
   ]

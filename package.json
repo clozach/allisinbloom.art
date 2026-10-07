@@ -24,6 +24,7 @@
 		"@sveltejs/kit": "^2.16.0",
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
 		"@types/node": "^20",
+		"@typescript-eslint/parser": "^8",
 		"eslint": "^9.18.0",
 		"eslint-config-prettier": "^10.0.1",
 		"eslint-plugin-svelte": "^3.0.0",
@@ -42,5 +43,10 @@
 			"esbuild"
 		]
 	},
-	"packageManager": "pnpm@10.2.0+sha512.0d27364e0139c6aadeed65ada153135e0ca96c8da42123bd50047f961339dc7a758fc2e944b428f52be570d1bd3372455c1c65fa2e7aa0bfbf931190f9552001"
+	"packageManager": "pnpm@10.2.0+sha512.0d27364e0139c6aadeed65ada153135e0ca96c8da42123bd50047f961339dc7a758fc2e944b428f52be570d1bd3372455c1c65fa2e7aa0bfbf931190f9552001",
+	"dependencies": {
+		"@courselit/inline-edit": "file:vendor/courselit-inline-edit-0.1.0.tgz",
+		"@vercel/blob": "^2.8.1",
+		"parse5": "^8.0.1"
+	}
 }

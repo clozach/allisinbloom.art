@@ -50,7 +50,7 @@
 			if (!isPoemPage) return;
 			if (e.metaKey || e.ctrlKey || e.altKey) return;
 			const t = e.target as HTMLElement | null;
-			if (t?.closest('.tuner, .pipeline-dashboard')) return;
+			if (t?.closest('.tuner, .pipeline-dashboard, .poem-editor')) return;
 			if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|AUDIO|VIDEO)$/.test(t.tagName)))
 				return;
 			if (e.key === 'ArrowLeft' || e.key === '<' || e.key === 'j' || e.key === ',') {
@@ -80,7 +80,7 @@
 
 <div class="app">
 	<main>
-		<slot />
+		{#key $page.url.pathname}<slot />{/key}
 		{#if isPoemPage}
 			<PoemNav {previousUrl} {nextUrl} {previousTitle} {nextTitle} />
 		{/if}

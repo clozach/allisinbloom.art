@@ -35,3 +35,4 @@ private-sources/
 
 src/lib/server/review/*.json
 evidence/
+/.poem-edits/

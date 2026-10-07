@@ -2,6 +2,17 @@
 
 A collection of poems and prose, built with mdsvex and notion.
 
+## Edit poems directly
+
+Choose **Edit poem** on a poem in protected staging or the local editor. Change
+the displayed words and title, then **Save** or **Cancel**. Line breaks, tabs and
+emphasis stay part of the poem. [Editing guide](docs/editing-poems.md).
+
+Local editing: `pnpm dev --host 127.0.0.1 --port 5211 --strictPort`.
+Hosted saving requires the approved private Preview storage connection described
+in [storage setup](docs/inline-storage.md). Site edits remain separate from the
+Notion sources. [Shared SwamiKK editor package](docs/shared-inline-edit.md).
+
 ## Tech & Services
 
 - SvelteKit w/Svelte 5 (https://svelte.dev/llms-small.txt)
