@@ -1,11 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
-// Home redirects every visit to a random poem drawn from static/route.txt.
+// Protected previews also include locally imported draft poems in navigation.
 const ROUTES = readFileSync(new URL('../static/route.txt', import.meta.url), 'utf8')
   .split('\n')
   .map((r) => r.trim())
   .filter(Boolean);
+const draftDirectory = new URL('../src/lib/server/drafts/', import.meta.url);
+const AVAILABLE_ROUTES = [...ROUTES, ...readdirSync(draftDirectory)
+  .filter(file => file.endsWith('.json'))
+  .map(file => JSON.parse(readFileSync(new URL(file, draftDirectory), 'utf8')).slug)];
 
 // Pin a poem's bloom seed before the app boots: the generator is
 // deterministic, so `{ seed }` alone reproduces the whole tune.
@@ -39,11 +43,11 @@ const hashCanvas = () =>
   });
 
 test.describe('Home redirects to a poem', () => {
-  test('landing on / ends up on a route.txt poem', async ({ page }) => {
+  test('landing on / ends up on an available poem', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
     const slug = new URL(page.url()).pathname.match(/^\/poems\/([^/]+)$/)?.[1];
     expect(slug, `redirected to ${page.url()}, not a poem page`).toBeTruthy();
-    expect(ROUTES).toContain(slug);
+    expect(AVAILABLE_ROUTES).toContain(slug);
   });
 
   test('poem page renders its text with the shader off by default', async ({ page }) => {
