@@ -81,12 +81,17 @@ team's storage list was empty, and allisinbloom-art had **no environment variabl
 The unintended token therefore has no remaining live store or application
 connection. Production settings and deployments were unchanged.
 
-The editor and storage adapters are implemented; local durable saving is
-verified. **Hosted saving remains disabled.** Provisioning now awaits either an
-owner-completed, verified Preview-only OIDC connection or Al's explicit revised
-approval for a scoped long-lived credential. Do not repeat the legacy connection
-path under the original OIDC-only approval. The code retains its OIDC design;
-neither `BLOB_STORE_ID` nor `POEM_EDIT_PREVIEW_ENABLED` is currently configured.
+The replacement private store `store_YXheZPoFZ3jEZfNW` is now connected through
+Vercel's dashboard to **Preview only**, with automatically renewed OIDC access.
+The connection created `BLOB_STORE_ID` and `BLOB_WEBHOOK_PUBLIC_KEY`; the optional
+read/write token was not selected. `POEM_EDIT_PREVIEW_ENABLED=true` is also
+Preview-only. Owner sign-in supplied browser access for verification without a
+protection bypass. The team has one owner, no additional project members and no
+protection bypasses; all previews remain protected by Vercel Authentication.
+
+Reads explicitly request identity encoding: compressed responses can expose a
+weak transfer ETag, which cannot serve as the strong object ETag for `ifMatch`.
+The adapter retains atomic conditional writes and stale-tab conflict handling.
 
 Hobby includes 1 GB storage, 10,000 simple operations and 2,000 advanced operations
 per month; exceeding limits blocks Blob access rather than charging additional

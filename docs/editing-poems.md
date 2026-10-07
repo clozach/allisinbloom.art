@@ -21,8 +21,8 @@ Site edits are saved separately from Notion. They do not rewrite the original
 Notion draft, source links, attribution, or import snapshots. The page warns you
 if its imported source changes after you made site edits.
 
-Local saves work on `http://127.0.0.1:5211`. The hosted preview needs its approved
-private storage connection before **Save** is enabled. The public production
+Local saves work on `http://127.0.0.1:5211`. The protected hosted preview also saves durably through its private storage
+connection. The public production
 site keeps its current reading experience until a separate release is approved.
 
 [Storage and access details](inline-storage.md) · [Shared editor source](shared-inline-edit.md)

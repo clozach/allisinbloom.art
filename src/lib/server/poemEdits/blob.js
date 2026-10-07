@@ -15,7 +15,14 @@ export function blobStore(storeId, sdk = { get, put }) {
 	};
 	/** @param {string} slug @returns {Promise<{record:unknown,version:string}|null>} */
 	async function read(slug) {
-		const result = await sdk.get(path(slug), { access: 'private', storeId, useCache: false });
+		// Compression can turn the object's strong ETag into a weak transfer ETag.
+		// Read the identity representation so ifMatch protects the exact stored version.
+		const result = await sdk.get(path(slug), {
+			access: 'private',
+			storeId,
+			useCache: false,
+			headers: { 'accept-encoding': 'identity' }
+		});
 		if (result === null) return null;
 		if (!result.stream || !result.blob.etag || (result.blob.size ?? 0) > MAX_RECORD_BYTES)
 			throw new Error('Invalid stored poem');

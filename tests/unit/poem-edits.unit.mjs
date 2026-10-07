@@ -301,7 +301,13 @@ test('Blob adapter uses private fresh reads and actual SDK conditional-write err
 			return stored
 				? {
 						stream: new Blob([JSON.stringify(stored)]).stream(),
-						blob: { etag: 'storage-etag', size: 100 }
+						blob: {
+							etag:
+								options.headers?.['accept-encoding'] === 'identity'
+									? 'storage-etag'
+									: 'W/\"transfer-etag\"',
+							size: 100
+						}
 					}
 				: null;
 		},
@@ -318,7 +324,8 @@ test('Blob adapter uses private fresh reads and actual SDK conditional-write err
 	assert.deepEqual(calls[0].options, {
 		access: 'private',
 		storeId: 'store_private',
-		useCache: false
+		useCache: false,
+		headers: { 'accept-encoding': 'identity' }
 	});
 	await store.write('a-poem', { revision: 'document-revision' }, null);
 	assert.equal(calls.find((call) => call.kind === 'put').options.allowOverwrite, false);
