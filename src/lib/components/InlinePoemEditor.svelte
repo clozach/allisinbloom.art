@@ -2,6 +2,7 @@
 	import { onMount, tick } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import { createEditHistory, snapshotTree, restoreTree } from '@courselit/inline-edit';
+	import { createPoemTypingHistory } from '$lib/poemTypingHistory.js';
 	import {
 		insertTextAtSelection,
 		serializePoemElement,
@@ -36,6 +37,9 @@
 	let retry: { key: string; operationId: string } | null = null;
 	let loading: Promise<void> | null = null;
 	let editButton: HTMLButtonElement;
+	let typing: ReturnType<typeof createPoemTypingHistory> | null = null;
+	let unsubscribeTyping: (() => void) | undefined;
+	let typingState = { canUndo: false, canRedo: false };
 	const endpoint = `/api/poem-edits/${encodeURIComponent(slug)}`;
 	const history = createEditHistory<SavedEdit>(async (entry) => {
 		const result = await persist(entry.before);
@@ -161,9 +165,22 @@
 		await tick();
 		body!.focus();
 		placePoemCaretAtEnd(body!);
+		typing = createPoemTypingHistory({
+			body: body!,
+			heading,
+			onChange: () => {
+				changed = true;
+			}
+		});
+		unsubscribeTyping = typing.subscribe((state) => {
+			typingState = state;
+		});
 	}
 
 	function finish() {
+		unsubscribeTyping?.();
+		typing?.dispose();
+		typing = null;
 		if (body) finishPoemEditing(body);
 		for (const element of [body, heading])
 			if (element) {
@@ -219,6 +236,7 @@
 	function onInput() {
 		changed = true;
 		conflict = false;
+		typing?.record();
 	}
 	function selectionIsInPoem() {
 		const anchor = window.getSelection()?.anchorNode;
@@ -232,6 +250,14 @@
 	}
 	function format(command: string) {
 		if (saving) return;
+		if (command === 'undo') {
+			void typing?.undo();
+			return;
+		}
+		if (command === 'redo') {
+			void typing?.redo();
+			return;
+		}
 		const retained = selection?.cloneRange();
 		const field = retained && heading?.contains(retained.startContainer) ? heading : body;
 		field?.focus({ preventScroll: true });
@@ -244,17 +270,29 @@
 			body?.focus();
 			placePoemCaretAtEnd(body!);
 		}
+		typing?.captureBefore();
 		document.execCommand(command);
 		onInput();
 	}
 	function onKey(event: KeyboardEvent) {
 		if (!editing || saving) return;
+		if (
+			(event.metaKey || event.ctrlKey) &&
+			targetIsInPoem(event) &&
+			['z', 'y'].includes(event.key.toLowerCase())
+		) {
+			event.preventDefault();
+			if (event.key.toLowerCase() === 'y' || event.shiftKey) void typing?.redo();
+			else void typing?.undo();
+			return;
+		}
 		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
 			event.preventDefault();
 			if (available && !saving) void save();
 			return;
 		}
 		if (!targetIsInPoem(event) || !selectionIsInPoem()) return;
+		typing?.captureBefore();
 		if (event.key === 'Enter' || event.key === 'Tab') {
 			if (event.key === 'Tab' && event.shiftKey) return;
 			// Literal characters preserve stanza spacing and indentation in both engines.
@@ -267,6 +305,13 @@
 	function onBeforeInput(event: InputEvent) {
 		if (!editing || saving || event.isComposing || !targetIsInPoem(event) || !selectionIsInPoem())
 			return;
+		if (event.inputType === 'historyUndo' || event.inputType === 'historyRedo') {
+			event.preventDefault();
+			if (event.inputType === 'historyUndo') void typing?.undo();
+			else void typing?.redo();
+			return;
+		}
+		typing?.captureBefore();
 		const target = heading?.contains(event.target as Node) ? heading : body;
 		if (event.inputType === 'insertParagraph' || event.inputType === 'insertLineBreak') {
 			event.preventDefault();
@@ -283,6 +328,7 @@
 	function onPaste(event: ClipboardEvent) {
 		if (!editing || saving || !targetIsInPoem(event) || !selectionIsInPoem()) return;
 		event.preventDefault();
+		typing?.captureBefore();
 		const target = heading?.contains(event.target as Node) ? heading : body;
 		const text = event.clipboardData?.getData('text/plain') || '';
 		insertTextAtSelection(target!, target === heading ? text.replace(/[\r\n]+/g, ' ') : text);
@@ -317,6 +363,8 @@
 		void loadSaved();
 		return () => {
 			unsubscribe();
+			unsubscribeTyping?.();
+			typing?.dispose();
 			document.removeEventListener('selectionchange', rememberSelection);
 		};
 	});
@@ -356,7 +404,7 @@
 				}}><strong>B</strong></button
 			>
 			<button
-				disabled={saving}
+				disabled={saving || !typingState.canUndo}
 				aria-label="Undo typing"
 				on:pointerdown|preventDefault={() => format('undo')}
 				on:click={(e) => {
@@ -364,7 +412,7 @@
 				}}>↶</button
 			>
 			<button
-				disabled={saving}
+				disabled={saving || !typingState.canRedo}
 				aria-label="Redo typing"
 				on:pointerdown|preventDefault={() => format('redo')}
 				on:click={(e) => {

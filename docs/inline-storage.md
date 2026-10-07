@@ -36,8 +36,8 @@ is not a multi-server database.
 
 ## Protected staging
 
-Vercel Functions do not have a persistent shared filesystem. Hosted saves use
-private Vercel Blob through the official SDK, with cache-bypassing reads and
+Vercel Functions do not have a persistent shared filesystem. The implemented
+hosted adapter uses private Vercel Blob through the official SDK, with cache-bypassing reads and
 atomic ETag conditional writes. Simultaneous first saves use create-only writes;
 subsequent saves use `ifMatch`. Content, history and idempotency receipts are all
 in that one atomic write. Storage failures never fall back to ephemeral files or
@@ -61,15 +61,32 @@ owner identity. Inspect current deployment protection, team/project membership,
 external grants and bypasses before enabling saves. Public production editing
 needs a separately approved owner-authentication design.
 
-## Provisioning approval
+## Provisioning status — 2026-10-07
 
-Read-only inspection on 2026-10-06 confirmed this Vercel team is on active Hobby,
-with no storage stores, integrations, or project environment variables. The
-prepared configuration needs explicit approval to create a **private poem draft
-store** and grant **only allisinbloom-art Preview** durable read/write access.
-This expands the application's persistent access, even though OIDC avoids a
-long-lived secret. The flag may then be added to Preview after its access check.
-The implementation does not create the store or change any project settings.
+Al approved **private Preview storage**: one private store, granting only
+allisinbloom-art Preview durable read/write access through **rotating OIDC** on
+the existing Hobby plan. That approval did not include a long-lived Blob token,
+Production access, or a paid upgrade.
+
+The provisioning attempt created `ab-art-poem-drafts` in `iad1`. Although current
+Vercel documentation describes OIDC as the default for new connections, the
+installed CLI's connection API created a Preview `BLOB_READ_WRITE_TOKEN` instead.
+Its value was never read or copied, and the token was not deployed. Saving was
+not enabled.
+
+That attempt was fully rolled back. Immediately before deletion,
+`store_nGC62Ud5cJxlOe1D` had zero objects, zero bytes and zero project connections.
+The store was deleted, then independently checked: its API returned **404**, the
+team's storage list was empty, and allisinbloom-art had **no environment variables**.
+The unintended token therefore has no remaining live store or application
+connection. Production settings and deployments were unchanged.
+
+The editor and storage adapters are implemented; local durable saving is
+verified. **Hosted saving remains disabled.** Provisioning now awaits either an
+owner-completed, verified Preview-only OIDC connection or Al's explicit revised
+approval for a scoped long-lived credential. Do not repeat the legacy connection
+path under the original OIDC-only approval. The code retains its OIDC design;
+neither `BLOB_STORE_ID` nor `POEM_EDIT_PREVIEW_ENABLED` is currently configured.
 
 Hobby includes 1 GB storage, 10,000 simple operations and 2,000 advanced operations
 per month; exceeding limits blocks Blob access rather than charging additional
