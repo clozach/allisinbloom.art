@@ -33,6 +33,7 @@
 	</PoemContent>
 	<ByLine label={byline} />
 	{#if $page.data.canEditPoems}
+		<div class="editor-slot">
 		{#await import('./InlinePoemEditor.svelte') then module}
 			<svelte:component
 				this={module.default}
@@ -43,5 +44,11 @@
 				slug={$page.url.pathname.split('/')[2]}
 			/>
 		{/await}
+		</div>
 	{/if}
 </div>
+
+<style>
+  /* Reserve the entry control while its owner-only code loads. */
+  .editor-slot { display: flow-root; min-height: calc(2rem + 40px); }
+</style>

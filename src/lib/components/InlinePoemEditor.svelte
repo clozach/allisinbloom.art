@@ -232,10 +232,13 @@
 	}
 	function format(command: string) {
 		if (saving) return;
-		if (selection) {
+		const retained = selection?.cloneRange();
+		const field = retained && heading?.contains(retained.startContainer) ? heading : body;
+		field?.focus({ preventScroll: true });
+		if (retained) {
 			const selected = window.getSelection();
 			selected?.removeAllRanges();
-			selected?.addRange(selection);
+			selected?.addRange(retained);
 		}
 		if (!selectionIsInPoem()) {
 			body?.focus();

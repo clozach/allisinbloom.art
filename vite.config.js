@@ -10,6 +10,9 @@ function revision() {
 }
 
 export default defineConfig({
+  // The owner editor loads lazily. Discover its dependencies before browsers
+  // connect, so first use does not invalidate in-flight hydration modules.
+  optimizeDeps: { include: ['@courselit/inline-edit', 'parse5'] },
   define: {
     __SITE_BUILD__: JSON.stringify({
       environment: process.env.VERCEL_ENV === 'production' ? 'production' : process.env.VERCEL_ENV === 'preview' ? 'staging' : 'dev',
