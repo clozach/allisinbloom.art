@@ -90,9 +90,9 @@ test.describe('Home redirects to a poem', () => {
 });
 
 // The bloom tuner's touch front door: a long-press on the invisible
-// bottom-left hotspot opens it (phones have no ` key); ✕ closes it.
+// bottom-left hotspot opens it (phones have no ` key); an outside tap closes it.
 test.describe('Bloom tuner on touch', () => {
-  test('long-press hotspot opens the tuner, ✕ closes it', async ({ page }) => {
+  test('long-press hotspot opens the tuner, an outside tap closes it', async ({ page }) => {
     await page.goto(`/poems/${ROUTES[0]}`, { waitUntil: 'networkidle' });
     await expect(page.locator('.tuner')).toHaveCount(0);
     const vp = page.viewportSize();
@@ -109,7 +109,7 @@ test.describe('Bloom tuner on touch', () => {
     await page.mouse.up();
     await expect(page.locator('.tuner')).toBeVisible();
     await expect(page.locator('.tuner .row span').first()).toHaveText('shader');
-    await page.getByRole('button', { name: 'Close bloom tuner' }).click();
+    await page.mouse.click(5, 5);
     await expect(page.locator('.tuner')).toHaveCount(0);
   });
 });
@@ -343,7 +343,7 @@ test.describe('Per-poem seeded bloom', () => {
     // a real paste: clipboard → ⌘V/^V with nothing editable focused
     const fire = async (text: string) => {
       await page.evaluate((t) => navigator.clipboard.writeText(t), text);
-      await page.locator('body').click({ position: { x: 5, y: 5 } });
+      await tuner.locator('[data-menu-move-handle]').focus();
       await page.keyboard.press(process.platform === 'darwin' ? 'Meta+V' : 'Control+V');
     };
     await fire(JSON.stringify(friend));
