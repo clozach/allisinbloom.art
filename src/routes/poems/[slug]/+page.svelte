@@ -1,4 +1,5 @@
 <script>
+  import { page } from '$app/stores';
   import PoemLayout from '../_poem.svelte';
   export let data;
 </script>
@@ -6,7 +7,7 @@
 <svelte:head><meta name="robots" content="noindex, nofollow" /></svelte:head>
 {#if data.status !== 'verified_latest_in_poems'}<aside class="review-notice">Latest version unconfirmed. <a href="#draft-source">Review the matched source ↓</a></aside>{/if}
 <PoemLayout title={data.title} showTitle={data.showTitle} byline={data.translator ? 'translated by' : 'by'} scale={data.scale}>
-  <div class="notion-poem" aria-label={data.title}>{@html data.html}</div>
+  <div class:notion-poem={true} class:all-i-know-poem={$page.params.slug === 'all-i-know'} aria-label={data.title}>{@html data.html}</div>
 </PoemLayout>
 <details class="source" id="draft-source">
   <summary>Draft source{data.status !== 'verified_latest_in_poems' ? ' · latest version unconfirmed' : ''}</summary>
@@ -22,6 +23,7 @@
 
 <style>
   .notion-poem { white-space: normal; }
+  .notion-poem.all-i-know-poem :global(.verse) { line-height: 2.8; }
   .notion-poem :global(.verse) { white-space: pre-wrap; tab-size: 8; margin: 0; }
   .notion-poem :global(.stanza) { margin: 0; }
   .notion-poem :global(.preformatted) { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.5; white-space: pre; max-width: 100%; overflow-x: auto; padding-bottom: .25em; }

@@ -25,7 +25,7 @@
 		gap: clamp(0.1em, 2vw, 0.5rem);
 		font-family: 'Noto Sans', sans-serif;
 		font-weight: 100;
-		padding-top: 3rem;
+  padding-top: 8rem;
 	}
 
 	.by {
