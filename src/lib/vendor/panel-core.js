@@ -1,6 +1,6 @@
 /* VENDORED COPY -- do not edit here.
  * Canonical: /Users/c/amaanah/projects/pixel-reveal/src/component/panel-core.js
- * sha256: de9b709fce344436a0a8a96e8fbbfb435ff7fc3ff891dfaf78e6553e47723fae
+ * sha256: 57052421e6effecbfb2a6c11680e938a60d8ca57dade178e3d08e2ff570660ac
  * synced: 2026-10-15
  * Edit the canonical file, then run:
  *   node projects/pixel-reveal/src/component/vendor-sync.mjs
@@ -108,7 +108,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "1.7.0";
+  var VERSION = "1.8.0";
 
   // Hold-gesture constants. Each is a platform number, not a taste:
   //   HOLD_MS 600   Android ViewConfiguration.getLongPressTimeout() is 500ms and
@@ -124,6 +124,7 @@
   var HOLD_MS = 600, CUE_AT_MS = 200, SLOP_PX = 10, CORNER_PX = 56, PAD = 12;
   var FLOAT_OVERFLOW_PX = 8, TAB_RESTORE_PX = 48;
   var PALETTE_REVEAL_MS = 100, TAB_PEEK_MS = 900, TAB_RETRACT_MS = 480;
+  var RESIZE_SEQ = 0;
 
   // ---------------------------------------------------------------- utils
 
@@ -218,6 +219,22 @@
     };
   }
 
+  /* Move only the requested edges; the opposite edges stay anchored. Minimum
+     sizes yield to a smaller viewport, so no resize can strand its controls. */
+  function resizeRect(rect, edge, dx, dy, vp, limits) {
+    var l = limits || {}, p = typeof l.pad === "number" ? l.pad : PAD;
+    var left = (vp.left || 0) + p, top = (vp.top || 0) + p;
+    var right = (vp.left || 0) + vp.w - p, bottom = (vp.top || 0) + vp.h - p;
+    var minW = Math.min(l.minWidth || 220, Math.max(1, right - left));
+    var minH = Math.min(l.minHeight || 100, Math.max(1, bottom - top));
+    var x = rect.left, y = rect.top, r = x + rect.width, b = y + rect.height;
+    if (edge.indexOf("w") !== -1) x = Math.max(left, Math.min(x + dx, r - minW));
+    if (edge.indexOf("e") !== -1) r = Math.min(right, Math.max(r + dx, x + minW));
+    if (edge.indexOf("n") !== -1) y = Math.max(top, Math.min(y + dy, b - minH));
+    if (edge.indexOf("s") !== -1) b = Math.min(bottom, Math.max(b + dy, y + minH));
+    return { left: x, top: y, width: r - x, height: b - y };
+  }
+
   /* Shared ordinary-panel dismissal. Callers own visibility, peer panels and
      pending-edit checks; this seam owns the event's closing effect. */
   function dismissPanelEvent(e, spec) {
@@ -234,17 +251,20 @@
     return true;
   }
 
-  /* Move a fixed panel through its title grip. place(want) supplies an initial
-     anchor; place() reuses the page-session position and reclamps after content
-     changes. No storage, animation or floating-palette docking lives here.
-     onMove receives ({left, top}, reason), including programmatic placement. */
+  /* Move through a title grip; optional resize creates eight interior margin
+     targets. place(want) restores position plus optional dimensions; place()
+     reclamps while retaining requested dimensions through viewport changes.
+     onMove receives actual geometry plus desiredWidth/desiredHeight after a
+     resize. No storage, animation or floating-palette docking lives here. */
   function makeMovable(spec) {
     var s = spec || {}, element = s.element, handle = s.handle;
     var win = s.window || (typeof window !== "undefined" ? window : null);
     if (!element || !handle || !win) throw new Error("panel-core: makeMovable needs element, handle and window");
     var doc = element.ownerDocument || win.document;
     var pad = typeof s.pad === "number" ? s.pad : PAD;
-    var position = null, session = null, destroyed = false, bound = [];
+    var position = null, session = null, destroyed = false, bound = [], size = null;
+    var resizing = s.resize && typeof s.resize === "object" ? s.resize : null;
+    var resizeHandles = [], resizeStyle = null, directions = ["n", "ne", "e", "se", "s", "sw", "w", "nw"];
     var instructions = "Drag to move; arrow keys move 1px; Shift+arrow keys move 10px";
     handle.setAttribute("tabindex", "0");
     handle.setAttribute("aria-roledescription", "move handle");
@@ -255,6 +275,63 @@
     handle.style.userSelect = "none";
     handle.style.webkitUserSelect = "none";
 
+    function positive(value, fallback) {
+      return typeof value === "number" && isFinite(value) && value > 0 ? value : fallback;
+    }
+    function arrangeHandles() {
+      if (!resizing) return;
+      var coarse = isFn(win.matchMedia) && win.matchMedia("(pointer: coarse)").matches;
+      var edge = positive(resizing.edgeSize, coarse ? 12 : 8);
+      var corner = Math.max(edge, positive(resizing.cornerSize, coarse ? 24 : 22));
+      var cut = 100 * edge / corner, rest = 100 - cut;
+      var polygons = {
+        nw: "0 0,100% 0,100% " + cut + "%," + cut + "% " + cut + "%," + cut + "% 100%,0 100%",
+        ne: "0 0,100% 0,100% 100%," + rest + "% 100%," + rest + "% " + cut + "%,0 " + cut + "%",
+        se: "100% 0,100% 100%,0 100%,0 " + rest + "%," + rest + "% " + rest + "%," + rest + "% 0",
+        sw: "0 0," + cut + "% 0," + cut + "% " + rest + "%,100% " + rest + "%,100% 100%,0 100%"
+      };
+      for (var i = 0; i < resizeHandles.length; i++) {
+        var node = resizeHandles[i], d = directions[i], corner_ = d.length === 2;
+        node.style.left = d.indexOf("w") !== -1 ? "0px" : d.indexOf("e") !== -1 ? "auto" : corner + "px";
+        node.style.right = d.indexOf("e") !== -1 ? "0px" : d.indexOf("w") !== -1 ? "auto" : corner + "px";
+        node.style.top = d.indexOf("n") !== -1 ? "0px" : d.indexOf("s") !== -1 ? "auto" : corner + "px";
+        node.style.bottom = d.indexOf("s") !== -1 ? "0px" : d.indexOf("n") !== -1 ? "auto" : corner + "px";
+        node.style.width = corner_ ? corner + "px" : /[ew]/.test(d) ? edge + "px" : "auto";
+        node.style.height = corner_ ? corner + "px" : /[ns]/.test(d) ? edge + "px" : "auto";
+        node.style.clipPath = corner_ ? "polygon(" + polygons[d] + ")" : "none";
+      }
+    }
+    if (resizing) {
+      var resizeId = "panel-resize-" + (++RESIZE_SEQ);
+      element.setAttribute("data-panel-resizable", resizeId);
+      resizeStyle = doc.createElement("style");
+      resizeStyle.textContent = '[data-panel-resizable="' + resizeId + '"]>[data-panel-resize]{background:transparent;}' +
+        '[data-panel-resizable="' + resizeId + '"]>[data-panel-resize]:focus-visible{' +
+        'outline:2px solid currentColor;outline-offset:-2px;background:rgb(255 200 61 / .22);}';
+      element.appendChild(resizeStyle);
+      var names = { n: "top edge", ne: "top right corner", e: "right edge", se: "bottom right corner",
+        s: "bottom edge", sw: "bottom left corner", w: "left edge", nw: "top left corner" };
+      for (var ri = 0; ri < directions.length; ri++) {
+        var zone = doc.createElement("span"), direction = directions[ri];
+        zone.className = "panel-resize";
+        zone.setAttribute("data-panel-resize", direction);
+        zone.setAttribute("tabindex", "0");
+        zone.setAttribute("role", "group");
+        zone.setAttribute("aria-roledescription", "resize handle");
+        zone.setAttribute("aria-label", "Resize " + names[direction] + "; arrow keys resize 1px; Shift+arrow keys resize 10px");
+        zone.setAttribute("title", "Drag to resize " + names[direction]);
+        zone.style.cssText = "position:absolute;z-index:20;pointer-events:auto;box-sizing:border-box;";
+        zone.style.cursor = direction === "n" || direction === "s" ? "ns-resize" :
+          direction === "e" || direction === "w" ? "ew-resize" : direction === "ne" || direction === "sw" ? "nesw-resize" : "nwse-resize";
+        zone.style.touchAction = "none";
+        zone.style.userSelect = "none";
+        zone.style.webkitUserSelect = "none";
+        element.appendChild(zone);
+        resizeHandles.push(zone);
+      }
+      arrangeHandles();
+    }
+
     function viewport_() {
       var vv = win.visualViewport;
       return { w: vv ? vv.width : win.innerWidth, h: vv ? vv.height : win.innerHeight,
@@ -263,13 +340,32 @@
     function rect_() {
       return isFn(element.getBoundingClientRect) ? element.getBoundingClientRect() : {
         left: parseFloat(element.style.left) || 0, top: parseFloat(element.style.top) || 0,
-        width: element.offsetWidth || 0, height: element.offsetHeight || 0
+        width: parseFloat(element.style.width) || element.offsetWidth || 0,
+        height: parseFloat(element.style.height) || element.offsetHeight || 0
       };
+    }
+    function geometry(rect) {
+      var r = rect || rect_();
+      var out = { left: r.left, top: r.top, width: r.width, height: r.height };
+      if (size) { out.desiredWidth = size.width; out.desiredHeight = size.height; }
+      return out;
     }
     function place_(want, reason) {
       if (destroyed) return position;
       var rect = rect_();
       var vp = viewport_(), desired = want || position || rect;
+      if (resizing && want && (positive(want.width, 0) || positive(want.desiredWidth, 0))) {
+        size = { width: positive(want.desiredWidth, positive(want.width, rect.width)),
+          height: positive(want.desiredHeight, positive(want.height, rect.height)) };
+      }
+      if (size) {
+        element.style.boxSizing = "border-box";
+        element.style.width = Math.min(Math.max(size.width, positive(resizing.minWidth, 220)), Math.max(1, vp.w - pad * 2)) + "px";
+        element.style.height = Math.min(Math.max(size.height, positive(resizing.minHeight, 100)), Math.max(1, vp.h - pad * 2)) + "px";
+        element.style.maxWidth = Math.max(1, vp.w - pad * 2) + "px";
+        element.style.maxHeight = Math.max(1, vp.h - pad * 2) + "px";
+        rect = rect_();
+      }
       var at = clampToViewport(rect.width, rect.height,
         { left: desired.left - vp.left, top: desired.top - vp.top }, vp, pad);
       at.left += vp.left;
@@ -279,7 +375,8 @@
       element.style.bottom = "auto";
       element.style.left = at.left + "px";
       element.style.top = at.top + "px";
-      if (isFn(s.onMove)) s.onMove({ left: at.left, top: at.top }, reason || "place");
+      arrangeHandles();
+      if (isFn(s.onMove)) s.onMove(geometry({ left: at.left, top: at.top, width: rect.width, height: rect.height }), reason || "place");
       return { left: at.left, top: at.top };
     }
     function consume(e) {
@@ -295,14 +392,37 @@
       var previous = session;
       session = null; // releasePointerCapture can synchronously raise lostpointercapture
       handle.style.cursor = "grab";
-      if (previous.pointerId !== undefined && isFn(handle.releasePointerCapture)) {
-        try { handle.releasePointerCapture(previous.pointerId); } catch (_) {}
+      if (previous.pointerId !== undefined && isFn(previous.capture.releasePointerCapture)) {
+        try { previous.capture.releasePointerCapture(previous.pointerId); } catch (_) {}
       }
-      if (cancelled) place_(previous.origin, "cancel");
+      if (cancelled) {
+        if (previous.kind === "resize") {
+          size = previous.size;
+          for (var k in previous.styles) if (Object.prototype.hasOwnProperty.call(previous.styles, k)) element.style[k] = previous.styles[k];
+        }
+        place_({ left: previous.origin.left, top: previous.origin.top }, "cancel");
+      }
     }
     function down(e) {
       if (destroyed || session || e.isPrimary === false || (e.button !== undefined && e.button !== 0)) return;
       var path = isFn(e.composedPath) ? e.composedPath() : [e.target];
+      var zone = null;
+      for (var z = 0; z < path.length; z++) if (resizeHandles.indexOf(path[z]) !== -1) { zone = path[z]; break; }
+      if (zone) {
+        consume(e);
+        place_();
+        session = { kind: "resize", capture: zone, pointerId: e.pointerId,
+          x: e.clientX, y: e.clientY, origin: geometry(), edge: zone.getAttribute("data-panel-resize"),
+          size: size && { width: size.width, height: size.height }, styles: {
+            width: element.style.width || "", height: element.style.height || "", boxSizing: element.style.boxSizing || "",
+            maxWidth: element.style.maxWidth || "", maxHeight: element.style.maxHeight || ""
+          } };
+        zone.focus();
+        if (e.pointerId !== undefined && isFn(zone.setPointerCapture)) {
+          try { zone.setPointerCapture(e.pointerId); } catch (_) {}
+        }
+        return;
+      }
       var inside = false;
       for (var i = 0; i < path.length; i++) {
         var node = path[i];
@@ -316,7 +436,7 @@
       if (!inside) return;
       consume(e);
       var origin = place_();
-      session = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, origin: origin };
+      session = { kind: "move", capture: handle, pointerId: e.pointerId, x: e.clientX, y: e.clientY, origin: origin };
       handle.style.cursor = "grabbing";
       if (isFn(handle.focus)) handle.focus();
       if (e.pointerId !== undefined && isFn(handle.setPointerCapture)) {
@@ -326,21 +446,28 @@
     function move(e) {
       if (!matchesPointer(e)) return;
       consume(e);
-      place_({ left: session.origin.left + e.clientX - session.x,
+      if (session.kind === "resize") {
+        place_(resizeRect(session.origin, session.edge, e.clientX - session.x, e.clientY - session.y,
+          viewport_(), { pad: pad, minWidth: resizing.minWidth, minHeight: resizing.minHeight }), "resize");
+      } else place_({ left: session.origin.left + e.clientX - session.x,
         top: session.origin.top + e.clientY - session.y }, "pointer");
     }
     function up(e) { if (matchesPointer(e)) { move(e); end(false); } }
     function cancel(e) { if (!e || matchesPointer(e)) end(true); }
     function key_(e) {
       var target = (isFn(e.composedPath) && e.composedPath()[0]) || e.target;
-      if (destroyed || target !== handle || e.metaKey || e.ctrlKey || e.altKey ||
+      var zone = resizeHandles.indexOf(target) !== -1;
+      if (destroyed || (target !== handle && !zone) || e.metaKey || e.ctrlKey || e.altKey ||
           !/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
       consume(e);
       if (isFn(e.stopImmediatePropagation)) e.stopImmediatePropagation();
       end(false);
-      var at = position || rect_(), step = e.shiftKey ? 10 : 1;
-      place_({ left: at.left + (e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0),
-        top: at.top + (e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0) }, "keyboard");
+      var at = geometry(), step = e.shiftKey ? 10 : 1;
+      var dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+      var dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+      if (zone) place_(resizeRect(at, target.getAttribute("data-panel-resize"), dx, dy, viewport_(),
+        { pad: pad, minWidth: resizing.minWidth, minHeight: resizing.minHeight }), "resize-keyboard");
+      else place_({ left: at.left + dx, top: at.top + dy }, "keyboard");
     }
     function resize() {
       end(false);
@@ -357,6 +484,7 @@
     bind_(win, "pointerup", up, true);
     bind_(win, "pointercancel", cancel, true);
     bind_(handle, "lostpointercapture", cancel);
+    for (var zi = 0; zi < resizeHandles.length; zi++) bind_(resizeHandles[zi], "lostpointercapture", cancel);
     bind_(win, "keydown", key_, true);
     bind_(win, "blur", hidden);
     bind_(doc, "visibilitychange", hidden);
@@ -368,6 +496,8 @@
     }
     return {
       place: place_,
+      getRect: function () { return geometry(); },
+      resizeHandles: resizeHandles,
       hasPosition: function () { return position !== null; },
       cancel: function () { end(true); },
       destroy: function () {
@@ -379,6 +509,12 @@
           if (isFn(b[0].removeEventListener)) b[0].removeEventListener(b[1], b[2], b[3]);
         }
         bound = [];
+        for (var h = 0; h < resizeHandles.length; h++) {
+          if (isFn(resizeHandles[h].remove)) resizeHandles[h].remove();
+        }
+        resizeHandles.length = 0;
+        if (resizeStyle && isFn(resizeStyle.remove)) resizeStyle.remove();
+        if (resizing && isFn(element.removeAttribute)) element.removeAttribute("data-panel-resizable");
       }
     };
   }
@@ -626,6 +762,9 @@
     "text-align:left;direction:ltr;letter-spacing:0;",
     "box-shadow:0 10px 30px rgb(0 0 0 / .5);}",
     ".panel[hidden]{display:none;}",
+    ".panel[data-panel-resizable]:not([hidden]){display:flex;flex-direction:column;overflow:hidden;}",
+    ".panel[data-panel-resizable]>.hd{flex:0 0 auto;}",
+    ".panel[data-panel-resizable]>.rows{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;}",
     /* Floating palettes hold short controls plus explanatory prose. Keep the
        whole surface inside a readable measure (Butterick: 45--90 characters)
        while the viewport remains the hard outer bound. Consumers can tune the
@@ -1005,8 +1144,9 @@
     el.appendChild(handle.el);
     if (row.hint) el.appendChild(hintEl(doc, row.hint));
     ctx.fields.push(handle);
-    // field-core exposes its own focusable input; fall back to the root node.
-    focusables.push(handle.input || handle.el);
+    // field-core's public node map owns its input; older adapters may expose
+    // input directly. Its wrapper is not a keyboard stop in the real browser.
+    focusables.push(handle.input || (handle.nodes && handle.nodes.input) || handle.el);
     return { el: el, focusables: focusables };
   }
 
@@ -1211,7 +1351,8 @@
 
     if (doc.body && isFn(doc.body.appendChild)) doc.body.appendChild(hostEl);
 
-    var movable = floating || !win ? null : makeMovable({ element: panelEl, handle: ttl, window: win });
+    var movable = floating || !win ? null : makeMovable({ element: panelEl, handle: ttl, window: win,
+      resize: s.resize === false ? null : (s.resize || { minWidth: 220, minHeight: 100 }) });
 
     // ------------------------------------------------------------- render
 
@@ -1239,7 +1380,7 @@
       // Focus order: rows first (task priority -- the reason the panel exists),
       // then the move handle (or floating minimize) LAST. Vault rule:
       // "Order the first 3-5 Tab stops by task importance."
-      focusList = rowFocus.concat([floating ? closeBtn : ttl]);
+      focusList = rowFocus.concat([floating ? closeBtn : ttl]).concat(movable ? movable.resizeHandles : []);
     }
     renderRows();
 
@@ -2028,6 +2169,7 @@
     ownsKeyNatively: ownsKeyNatively,
     SCROLL_KEYS: SCROLL_KEYS,
     clampToViewport: clampToViewport,
+    resizeRect: resizeRect,
     anchorPoint: anchorPoint,
     viewportHitTest: viewportHitTest,
     floatingStart: floatingStart,

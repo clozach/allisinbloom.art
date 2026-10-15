@@ -2,7 +2,7 @@
 
 Development → protected staging → approved production uses the existing Vercel project, `allisinbloom-art`, in Elbong Q Gearny's projects. No new server, DNS record, subscription or deployment token is required.
 
-Press backtick on any page to see the three environments, the current build revision, CI checks and the release comparison. On a phone, hold the bottom-left corner for 600 ms. On poem pages this lives above the existing bloom controls. Drag the title to move the panel, or focus it and use arrows (Shift moves 10px). It reopens at the same location during the page session and fits the available screen. Escape, an outside tap or the summon gesture closes it; typing and pending-value Escape keep the field’s existing behavior.
+Press backtick on any page to see the three environments, the current build revision, CI checks and the release comparison. On a phone, hold the bottom-left corner for 600 ms. On poem pages this lives above the existing bloom controls. Drag the title to move the panel, or focus it and use arrows (Shift moves 10px). Drag any edge to resize that side, or a corner to resize both dimensions. Focus an edge or corner and use arrows (Shift changes 10px). It reopens at the same location and requested size during the page session, fits a smaller screen, and restores that size when space returns. The title and resize margins stay fixed while its contents scroll. Escape, an outside tap or the summon gesture closes it; typing and pending-value Escape keep the field’s existing behavior.
 
 ## CI and staging
 

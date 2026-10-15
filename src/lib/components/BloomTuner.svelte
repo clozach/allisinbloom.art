@@ -113,6 +113,7 @@
       <span class="hint">Esc to close</span>
     </span>
   </div>
+  <div class="tuner-body">
   <PipelineCard />
   <div class="row">
     <label class="cell"><span>shader</span><input type="checkbox" bind:checked={prefs.shaderOn} on:change={onPrefs} /></label>
@@ -171,6 +172,7 @@
     <button on:click={copyTune}>{flash || 'copy values'}</button>
     <button on:click={revert}>revert</button>
   </div>
+  </div>
 </div>
 
 <style>
@@ -183,7 +185,9 @@
     width: min(320px, calc(100vw - 24px));
     /* grow to the viewport before asking for a scroll */
     max-height: calc(100dvh - 24px);
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     background: rgb(20 16 20 / 0.92);
     color: #e8e2ea;
     font: 11px/1.5 monospace;
@@ -191,7 +195,12 @@
     border-radius: 8px;
     border: 1px solid rgb(255 255 255 / 0.15);
   }
+  .tuner-body {
+    min-height: 0;
+    overflow-y: auto;
+  }
   .tuner-head {
+    flex-shrink: 0;
     display: flex;
     /* tight hosts (Safari text zoom) wrap whole tokens to a second line —
        never mid-word; the hud is width-padded so 99→100s can't reflow */
