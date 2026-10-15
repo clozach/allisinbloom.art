@@ -22,7 +22,11 @@ Notion sources. [Shared SwamiKK editor package](docs/shared-inline-edit.md).
 ## Publishing pipeline
 
 Press backtick for **dev → staging → production**, CI checks and release review.
-On a phone, hold the bottom-left corner. Staging uses an authenticated Vercel
+On a phone, hold the bottom-left corner. Drag the panel title to move it, or
+focus the title and use arrow keys (Shift moves 10px). Each menu reopens where
+you left it during the page session and stays inside the available screen;
+reloading resets the location. Escape, tapping outside or the same summon gesture
+closes the panel; fields keep their own Escape behavior. Staging uses an authenticated Vercel
 Preview; production publication requires Al's approval. [Publishing and private
 draft handling](docs/publishing.md) describes the CI checks, source boundary and rollback.
 
@@ -107,14 +111,13 @@ function of `t / loopT`, so the loop is bit-exact (verified by pixel-diff at `t`
 
 - **Tuner panel:** on any poem page, press `` ` `` — or, on a phone, **long-press
   the bottom-left corner of the screen** (an invisible 56 px hotspot; hold ~0.6 s
-  without moving) — to open the "bloom tuner"; ✕ closes it. Rows: `shader` (site-wide),
+  without moving) — to open the "bloom tuner"; Escape, an outside tap or the same gesture closes it. Rows: `shader` (site-wide),
   `animate` nested under it (site-wide, hides the motion sliders `time multiplier` /
   `seconds per doubling` while off; the values are still generated and rolled, just
   hidden), one 🎲 beside `shader` that rerolls this poem's whole blot into its
   `current` layer, `theme` override, then **this poem · seed N** with a **field per
   knob** following the vault's propsheet contract (`NumberField.svelte`: label above;
-  `[icon][value+unit]`; drag the icon to scrub — Pointer Lock wraps the cursor where
-  allowed, touch-drag on phones; click/Tab to type, ↑/↓ nudge by step, ⇧ ×10, Enter/blur
+  `[icon][value+unit]`; drag the icon to scrub — plain capture-drag with no pointer lock, including touch-drag on phones; click/Tab to type, ↑/↓ nudge by step, ⇧ ×10, Enter/blur
   submit with junk stripped, Esc reverts; glyphs in `src/lib/bloom/icons.js`, mirrored
   from amaanah `projects/pixel-reveal/src/component/icons.js`), color pickers for the
   palette endpoints, `copy values` (JSON of this page's set) and `revert`. **Paste**

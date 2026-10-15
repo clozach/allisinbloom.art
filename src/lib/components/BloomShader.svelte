@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { dismissMenuEvent } from '$lib/movableMenu';
   import { loadPrefs, savePrefs, loadPage, savePage, revertPage, rollPage, pasteValues } from '$lib/bloom/store.js';
 
   /** the poem this page shows — its bloom is seeded + persisted per slug */
@@ -265,7 +266,7 @@ void main() {
   onMount(() => {
     /** @param {KeyboardEvent} e */
     const onKey = (e) => {
-      if (e.key === 'Escape' && panelOpen) closePanel();
+      if (e.key === 'Escape' && panelOpen) { dismissMenuEvent(e, closePanel); return; }
       if (e.key === '`' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         if (e.repeat) return;
         const t = /** @type {HTMLElement | null} */ (e.target);
@@ -274,8 +275,16 @@ void main() {
         togglePanel();
       }
     };
+    /** @param {PointerEvent} e */
+    const onOutside = (e) => {
+      if (!panelOpen) return;
+      const inside = e.composedPath().some((node) => node instanceof Element && node.matches('.tuner, .egg'));
+      dismissMenuEvent(e, closePanel, inside);
+    };
+    window.addEventListener('pointerdown', onOutside, true);
     window.addEventListener('keydown', onKey);
     return () => {
+      window.removeEventListener('pointerdown', onOutside, true);
       window.removeEventListener('keydown', onKey);
       delete document.documentElement.dataset.theme;
     };
@@ -551,7 +560,6 @@ void main() {
     {revert}
     {roll}
     {paste}
-    onClose={closePanel}
   />
 {/if}
 

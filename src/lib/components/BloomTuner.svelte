@@ -5,6 +5,7 @@
   // reveals the motion-only knobs beneath it. Fields follow the vault's
   // propsheet contract (label above; drag the icon to scrub, click to type).
   import { onMount } from 'svelte';
+  import { movableMenu } from '$lib/movableMenu';
   import NumberField from './NumberField.svelte';
   import PipelineCard from './PipelineCard.svelte';
 
@@ -62,8 +63,6 @@
   export let roll;
   /** @type {(text: string) => boolean} */
   export let paste;
-  /** @type {() => void} */
-  export let onClose = () => {};
 
   $: visibleParams = PARAMS.filter((p) => !p.motion || prefs.animate);
 
@@ -106,13 +105,12 @@
   });
 </script>
 
-<div class="tuner">
+<div class="tuner" use:movableMenu={'bloom-tuner'}>
   <div class="tuner-head">
-    <strong>bloom tuner</strong>
+    <button class="move" type="button" data-menu-move-handle>bloom tuner</button>
     <span class="hud">{hud}</span>
     <span class="head-right">
-      <span class="hint">` to close</span>
-      <button class="close" type="button" aria-label="Close bloom tuner" on:click={onClose}>✕</button>
+      <span class="hint">Esc to close</span>
     </span>
   </div>
   <PipelineCard />
@@ -181,7 +179,8 @@
     right: 12px;
     bottom: 12px;
     z-index: 100;
-    width: 320px;
+    box-sizing: border-box;
+    width: min(320px, calc(100vw - 24px));
     /* grow to the viewport before asking for a scroll */
     max-height: calc(100dvh - 24px);
     overflow-y: auto;
@@ -201,10 +200,24 @@
     gap: 8px;
     margin-bottom: 6px;
   }
-  .tuner-head strong,
+  .tuner-head .move,
   .tuner-head .hud,
   .tuner-head .hint {
     white-space: nowrap;
+  }
+  .tuner-head .move {
+    border: 0;
+    background: none;
+    color: inherit;
+    padding: 0;
+    font: inherit;
+    font-weight: bold;
+    text-align: left;
+  }
+  .tuner-head .move:focus-visible {
+    outline: 2px solid #caa8d6;
+    outline-offset: 3px;
+    border-radius: 2px;
   }
   .tuner-head .hud {
     color: #9d8fa6;
@@ -221,19 +234,8 @@
   }
   @media (pointer: coarse) {
     .tuner-head .hint {
-      display: none; /* no ` key on a phone; the ✕ is the way out */
+      display: none; /* touch closes by tapping outside or holding the corner */
     }
-  }
-  .tuner-head .close {
-    background: none;
-    border: 1px solid rgb(255 255 255 / 0.2);
-    border-radius: 4px;
-    color: inherit;
-    font: inherit;
-    line-height: 1;
-    padding: 4px 7px;
-    min-width: 28px;
-    min-height: 28px;
   }
   .row {
     display: grid;
