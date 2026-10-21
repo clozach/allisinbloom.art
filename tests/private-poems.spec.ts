@@ -34,13 +34,16 @@ test('a poem with its own route keeps its own line rhythm, and only there', asyn
     const style = getComputedStyle(element);
     return parseFloat(style.lineHeight) / parseFloat(style.fontSize);
   });
+  await page.goto(`/poems/${plain.slug}`, { waitUntil: 'networkidle' });
+  const shared = await rhythm();
   await page.goto('/poems/all-i-know', { waitUntil: 'networkidle' });
   expect(await page.locator('.notion-poem .verse').textContent()).toBe(styled.sourceText);
   expect(await rhythm()).toBeCloseTo(2, 1);
+  expect(shared).not.toBeCloseTo(2, 1);
   // Leave by client-side navigation: Svelte's scoping keeps the rhythm from following.
   await page.locator('.source summary').click();
   await page.locator('.source a[href="/review/poems"]').click();
   await page.locator(`.poem-link[href="/poems/${plain.slug}"]`).click();
   await expect(page).toHaveURL(`/poems/${plain.slug}`);
-  expect(await rhythm()).toBeCloseTo(1.6, 1);
+  expect(await rhythm()).toBeCloseTo(shared, 1);
 });
