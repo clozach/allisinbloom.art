@@ -2,17 +2,6 @@
 
 A collection of poems and prose, built with mdsvex and notion.
 
-## Edit poems directly
-
-Choose **Edit poem** on a poem in protected staging or the local editor. Change
-the displayed words and title, then **Save** or **Cancel**. Line breaks, tabs and
-emphasis stay part of the poem. [Editing guide](docs/editing-poems.md).
-
-Local editing: `pnpm dev --host 127.0.0.1 --port 5211 --strictPort`.
-Hosted saving requires the approved private Preview storage connection described
-in [storage setup](docs/inline-storage.md). Site edits remain separate from the
-Notion sources. [Shared SwamiKK editor package](docs/shared-inline-edit.md).
-
 ## Tech & Services
 
 - SvelteKit w/Svelte 5 (https://svelte.dev/llms-small.txt)
@@ -33,8 +22,13 @@ draft handling](docs/publishing.md) describes the CI checks, source boundary and
 ## Editing a poem
 
 On a poem page, ⌥⌘E asks the owner to sign in, then makes the words editable where
-they are; ⌥⌘E again saves and leaves without a word. No button announces it.
-[Editing guide](docs/editing-poems.md).
+they are; ⌘S saves and keeps you editing; ⌥⌘E again saves and leaves without a word.
+No button announces it. [Editing guide](docs/editing-poems.md).
+
+Local editing: put `POEM_EDIT_USER` and `POEM_EDIT_PASSWORD` in `.env` (see
+`.env.example`), then `pnpm dev --host 127.0.0.1 --port 5211 --strictPort`. Hosted
+saving uses the private Preview storage connection in [storage setup](docs/inline-storage.md).
+Site edits stay separate from the Notion sources. [Shared SwamiKK editor package](docs/shared-inline-edit.md).
 
 ## Figma workshop
 

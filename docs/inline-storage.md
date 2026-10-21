@@ -21,8 +21,8 @@ An older revision returns 409;
 unavailable storage returns 503, and the client must retain the unsaved words.
 
 The GET response also reports `sourceChanged` when the current imported source
-hash differs from the overlay's original source hash. The UI warns that the saved
-site version is being shown over a changed import; neither version is replaced
+hash differs from the overlay's original source hash. When the owner opens editing, the page warns that the
+saved site version is being shown over a changed import; neither version is replaced
 automatically. Saving more site edits retains that original source hash.
 
 The server validates the supported poem HTML before saving or rendering a stored

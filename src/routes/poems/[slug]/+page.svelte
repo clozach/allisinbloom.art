@@ -9,16 +9,19 @@
 </PoemLayout>
 
 <style>
-  .notion-poem { white-space: normal; }
-  .notion-poem :global(.verse) { white-space: pre-wrap; tab-size: 8; margin: 0; }
-  .notion-poem :global(.stanza) { margin: 0; }
-  .notion-poem :global(.preformatted) { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.5; white-space: pre; max-width: 100%; overflow-x: auto; padding-bottom: .25em; }
-  .notion-poem :global(.title-verse) { font: inherit; }
-  .notion-poem :global(.empty-line) { min-height: 1.8em; }
-  .notion-poem :global(.indent) { margin-left: 2em; }
-  .notion-poem :global(blockquote) { margin: 1em 0; padding-left: 1em; border-left: 1px solid var(--hr); }
-  .notion-poem :global(hr) { margin: 1.8em 0; }
-  .notion-poem :global(.columns) { display: flex; gap: 2em; }
-  .notion-poem :global(.column) { flex: 1; min-width: 0; }
-  .notion-poem :global(.callout) { padding: 1em; margin: 1em 0; border: 1px solid var(--hr); }
+  /* Global on purpose: a saved edit stores the words' markup, wrapper included, with
+     whatever scope class the build that saved it gave this component. Rules keyed to
+     that hash would stop matching after any edit to this block. */
+  :global(.notion-poem) { white-space: normal; }
+  :global(.notion-poem .verse) { white-space: pre-wrap; tab-size: 8; margin: 0; }
+  :global(.notion-poem .stanza) { margin: 0; }
+  :global(.notion-poem .preformatted) { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.5; white-space: pre; max-width: 100%; overflow-x: auto; padding-bottom: .25em; }
+  :global(.notion-poem .title-verse) { font: inherit; }
+  :global(.notion-poem .empty-line) { min-height: 1.8em; }
+  :global(.notion-poem .indent) { margin-left: 2em; }
+  :global(.notion-poem blockquote) { margin: 1em 0; padding-left: 1em; border-left: 1px solid var(--hr); }
+  :global(.notion-poem hr) { margin: 1.8em 0; }
+  :global(.notion-poem .columns) { display: flex; gap: 2em; }
+  :global(.notion-poem .column) { flex: 1; min-width: 0; }
+  :global(.notion-poem .callout) { padding: 1em; margin: 1em 0; border: 1px solid var(--hr); }
 </style>

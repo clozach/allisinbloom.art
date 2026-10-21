@@ -15,6 +15,12 @@ import { resolve } from 'node:path';
 
 test.describe('direct poem editing', () => {
 	test.describe.configure({ mode: 'serial' });
+	test.beforeEach(({}, info) => {
+		test.skip(
+			!info.project.use.httpCredentials,
+			'POEM_EDIT_USER / POEM_EDIT_PASSWORD are not set: editing does not exist without them'
+		);
+	});
 	let previousFile: Buffer | null = null;
 	let filename: string;
 	let slug: string;
@@ -44,6 +50,7 @@ test.describe('direct poem editing', () => {
 		await page.getByRole('textbox', { name: 'Poem title' }).fill('A title edited here');
 		await page.keyboard.press('Control+s');
 		await expect(page.getByRole('status')).toContainText('Saved.');
+		await leave(page);
 		await expect(page.locator('.poem-title')).toHaveText('A title edited here');
 		expect(await page.locator('.poem-content').textContent()).toBe(edited);
 		await page.keyboard.press('Control+z');
@@ -280,5 +287,31 @@ test.describe('direct poem editing', () => {
 			headers: { authorization: `Basic ${Buffer.from('someone:else').toString('base64')}` }
 		});
 		expect(wrong.status).toBe(401);
+	});
+
+	test('⌘S saves and keeps you editing; the next words save on leaving', async ({ page }) => {
+		await page.goto(`/poems/${slug}`, { waitUntil: 'networkidle' });
+		await enter(page);
+		const body = page.getByRole('textbox', { name: 'Poem text' });
+		await body.press('End');
+		await page.keyboard.type(' one');
+		await page.keyboard.press('Control+s');
+		await expect(page.getByRole('status')).toHaveText('Saved.');
+		await expect(body).toBeVisible();
+		await page.keyboard.type(' two');
+		await leave(page);
+		await expect(page.getByRole('status')).toHaveText('');
+		await page.reload({ waitUntil: 'networkidle' });
+		expect(await page.locator('.poem-content').textContent()).toContain(' one two');
+	});
+
+	test('a no-op style chord leaves nothing to save, and ⌥⌘E leaves without a word', async ({
+		page
+	}) => {
+		await page.goto(`/poems/${slug}`, { waitUntil: 'networkidle' });
+		await enter(page);
+		await page.keyboard.press('Control+i');
+		await leave(page);
+		await expect(page.getByRole('status')).toHaveText('');
 	});
 });

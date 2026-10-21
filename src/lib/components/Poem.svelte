@@ -49,6 +49,8 @@
 	/** ⌥⌘E (Ctrl+Alt+E elsewhere) enters editing, and leaves it again. @param {KeyboardEvent} event */
 	async function onKeydown(event) {
 		if (!$page.data.poemEditing) return;
+		// AltGr reports as Ctrl+Alt on Windows and Linux; typing € or ę is not the chord.
+		if (event.getModifierState?.('AltGraph')) return;
 		if (!(event.metaKey || event.ctrlKey) || !event.altKey || event.code !== 'KeyE') return;
 		event.preventDefault();
 		event.stopImmediatePropagation();

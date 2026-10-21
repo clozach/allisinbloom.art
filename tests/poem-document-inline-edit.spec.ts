@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { existsSync, readdirSync } from 'node:fs';
 
+test.beforeEach(({}, info) => {
+	test.skip(
+		!info.project.use.httpCredentials,
+		'POEM_EDIT_USER / POEM_EDIT_PASSWORD are not set: editing does not exist without them'
+	);
+});
+
 test('literal trailing lines, indentation and shared typing undo survive repeated editing', async ({
 	page
 }) => {

@@ -77,4 +77,12 @@ test.describe('Site nav', () => {
       await expect(page.locator('.poem-nav a.sky')).toBeVisible();
     }
   });
+
+  test('the poems index lists what the site navigates and not the layout fixture', async ({ page }) => {
+    await page.goto('/poems', { waitUntil: 'networkidle' });
+    for (const slug of ROUTES) await expect(page.locator(`a[href="/poems/${slug}"]`).first()).toBeVisible();
+    await expect(page.locator('a[href="/poems/width-test"]')).toHaveCount(0);
+    const fixture = await page.goto('/poems/width-test', { waitUntil: 'networkidle' });
+    expect(fixture?.status()).toBe(200);
+  });
 });

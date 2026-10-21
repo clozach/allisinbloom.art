@@ -101,12 +101,13 @@
 	}
 
 	async function persist(
-		document: PoemDocument
+		document: PoemDocument,
+		quiet = false
 	): Promise<{ document: PoemDocument; revision: string } | null> {
 		saving = true;
 		if (editing)
 			for (const element of [body, heading]) if (element) element.contentEditable = 'false';
-		message = 'Saving…';
+		if (!quiet) message = 'Saving…';
 		const key = JSON.stringify({ document, revision });
 		if (retry?.key !== key) retry = { key, operationId: crypto.randomUUID() };
 		try {
@@ -122,7 +123,7 @@
 				return null;
 			}
 			if (!response.ok) {
-				message = 'Could not save. Your changes are still here; try again.';
+				message = 'Could not save; nothing changed on the server. Your words are still here: try again.';
 				return null;
 			}
 			const result = await response.json();
@@ -131,7 +132,8 @@
 			conflict = false;
 			return result;
 		} catch {
-			message = 'Connection lost. Your changes are still here; try Save again.';
+			message =
+				'Connection lost; nothing was saved. Your words are still here: ⌘S to try again, or ⌥⌘E to save and leave.';
 			return null;
 		} finally {
 			saving = false;
@@ -147,7 +149,7 @@
 			await begin();
 			return;
 		}
-		if (!changed) {
+		if (unchangedNow()) {
 			finish();
 			message = '';
 			return;
@@ -188,7 +190,7 @@
 			body: body!,
 			heading,
 			onChange: () => {
-				changed = true;
+				changed = !unchangedNow();
 			}
 		});
 		unsubscribeTyping = typing.subscribe((state) => {
@@ -228,8 +230,21 @@
 		message = 'Changes discarded.';
 	}
 
-	/** @param quiet true when leaving by ⌥⌘E: a success shows nothing, a failure keeps editing open and says why. */
-	async function save(quiet = false) {
+	/** True while the words and title still match what this session started from (or last saved). */
+	function unchangedNow() {
+		try {
+			const document = currentDocument();
+			return document.title === original.title && document.html === original.html;
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * @param quiet leaving by ⌥⌘E: a success shows nothing, a failure keeps editing open and says why.
+	 * @param stay ⌘S: save and keep editing; the session continues from the saved words.
+	 */
+	async function save(quiet = false, stay = false) {
 		let document: PoemDocument;
 		try {
 			document = currentDocument();
@@ -238,13 +253,32 @@
 			return;
 		}
 		if (document.title === original.title && document.html === original.html) {
-			finish();
-			message = 'No changes to save.';
+			if (!stay) finish();
+			message = '';
 			return;
 		}
-		const result = await persist(document);
+		const result = await persist(document, quiet);
 		if (!result) return;
 		history.record({ editId: result.revision, before: original, after: result.document });
+		if (stay) {
+			original = document;
+			bodySnapshot = snapshotTree(body!);
+			headingSnapshot = heading ? snapshotTree(heading) : undefined;
+			changed = false;
+			message = 'Saved.';
+			// The save froze the fields for a moment; some engines drop focus then. Put the caret back.
+			const active = window.document.activeElement; // `document` here is the poem, not the page
+			if (!active || !(body?.contains(active) || heading?.contains(active))) {
+				const field = selection && heading?.contains(selection.startContainer) ? heading : body;
+				field!.focus({ preventScroll: true });
+				const live = window.getSelection();
+				if (selection && live) {
+					live.removeAllRanges();
+					live.addRange(selection);
+				} else placePoemCaretAtEnd(body!);
+			}
+			return;
+		}
 		// Restore Svelte-owned node identities before applying the saved document.
 		// Native edits can replace its text nodes (especially an empty title).
 		restoreDraftDOM();
@@ -254,7 +288,7 @@
 	}
 
 	function onInput() {
-		changed = true;
+		changed = !unchangedNow();
 		conflict = false;
 		typing?.record();
 	}
@@ -295,6 +329,8 @@
 		onInput();
 	}
 	function onKey(event: KeyboardEvent) {
+		// A key that is part of an input-method composition (or the accent picker) is not a command.
+		if (event.isComposing || event.keyCode === 229) return;
 		const chord = (event.metaKey || event.ctrlKey) && !event.altKey;
 		const key = event.key.toLowerCase();
 		if (!editing) {
@@ -335,7 +371,7 @@
 		}
 		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
 			event.preventDefault();
-			if (available && !saving) void save();
+			if (available && !saving) void save(false, true);
 			return;
 		}
 		if (!targetIsInPoem(event) || !selectionIsInPoem()) return;

@@ -1,6 +1,6 @@
 <script>
   // This poem has a route of its own for one reason: a style Svelte scopes to it.
-  // Its words, source panel and editing are the generic draft page, unchanged.
+  // Its words and its editing are the generic draft page, unchanged.
   import DraftPage from '../[slug]/+page.svelte';
   export let data;
 </script>
