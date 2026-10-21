@@ -30,6 +30,12 @@ closes the panel; fields keep their own Escape behavior. Staging uses an authent
 Preview; production publication requires Al's approval. [Publishing and private
 draft handling](docs/publishing.md) describes the CI checks, source boundary and rollback.
 
+## Editing a poem
+
+On a poem page, ⌥⌘E asks the owner to sign in, then makes the words editable where
+they are; ⌥⌘E again saves and leaves without a word. No button announces it.
+[Editing guide](docs/editing-poems.md).
+
 ## Figma workshop
 
 [Open the editable design workshop](https://www.figma.com/design/YM1B3KmYzdYj4o7pL3tC5y?node-id=13-2).

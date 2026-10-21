@@ -4,21 +4,24 @@ import { existsSync, readdirSync } from 'node:fs';
 test('literal trailing lines, indentation and shared typing undo survive repeated editing', async ({
 	page
 }) => {
-	await page.goto('/poems/width-test', { waitUntil: 'networkidle' });
+	// A poem no other case saves: inline-edit.spec writes width-test and wood-between-the-worlds,
+	// and saved edits now render on load, so a shared fixture would change under this test.
+	await page.goto('/poems/the-world-behind-the-world-shifted', { waitUntil: 'networkidle' });
 	const original = await page.locator('.poem-content').innerHTML();
-	await page.getByRole('button', { name: 'Edit poem' }).click();
+	await page.keyboard.press('Alt+Control+KeyE');
+	await expect(page.getByRole('textbox', { name: 'Poem text' })).toBeFocused();
 	const body = page.getByRole('textbox', { name: 'Poem text' });
 	const before = await body.textContent();
 
 	await page.keyboard.press('Enter');
 	expect(await body.textContent()).toBe(before + '\n');
-	await page.getByRole('button', { name: 'Undo typing', exact: true }).click();
+	await page.keyboard.press('Control+z');
 	await expect.poll(() => body.textContent()).toBe(before);
 	await page.keyboard.press('Control+Shift+Z');
 	await expect.poll(() => body.textContent()).toBe(before + '\n');
 	await page.keyboard.press('Control+z');
 	await expect.poll(() => body.textContent()).toBe(before);
-	await page.getByRole('button', { name: 'Redo typing', exact: true }).click();
+	await page.keyboard.press('Control+Shift+Z');
 	await expect.poll(() => body.textContent()).toBe(before + '\n');
 
 	await page.keyboard.press('Tab');
@@ -30,7 +33,7 @@ test('literal trailing lines, indentation and shared typing undo survive repeate
 	await page.keyboard.type('last\u00a0  ');
 	expect(await body.textContent()).toBe(before + '\n\t  first line  \nsecond line\n\nlast\u00a0  ');
 
-	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await page.keyboard.press('Escape');
 	expect(await page.locator('.poem-content').innerHTML()).toBe(original);
 	await expect(page.locator('[data-poem-edit-caret]')).toHaveCount(0);
 });
@@ -40,9 +43,10 @@ test('an unchanged edit session leaves no caret helpers or layout changes', asyn
 	const body = page.locator('.poem-content');
 	const original = await body.innerHTML();
 	const text = await body.textContent();
-	await page.getByRole('button', { name: 'Edit poem' }).click();
+	await page.keyboard.press('Alt+Control+KeyE');
+	await expect(page.getByRole('textbox', { name: 'Poem text' })).toBeFocused();
 	expect(await body.textContent()).toBe(text);
-	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await page.keyboard.press('Escape');
 	expect(await body.innerHTML()).toBe(original);
 });
 
@@ -67,7 +71,8 @@ test('every available private poem can be edited and cancelled without changing 
 		const titles = await page.locator('.poem-title').allTextContents();
 		const isPreformatted = (await body.locator('.preformatted').count()) > 0;
 		const isRich = (await body.locator('em').count()) > 0;
-		await page.getByRole('button', { name: 'Edit poem' }).click();
+		await page.keyboard.press('Alt+Control+KeyE');
+	await expect(page.getByRole('textbox', { name: 'Poem text' })).toBeFocused();
 		await expect(page.getByRole('textbox', { name: 'Poem text' })).toBeVisible();
 		expect(await body.textContent()).toBe(text);
 		if ((!editedPreformatted && isPreformatted) || (!editedRich && isRich)) {
@@ -78,7 +83,7 @@ test('every available private poem can be edited and cancelled without changing 
 			editedPreformatted ||= isPreformatted;
 			editedRich ||= isRich;
 		}
-		await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+		await page.keyboard.press('Escape');
 		expect(await body.innerHTML()).toBe(original);
 		expect(await page.locator('.poem-title').allTextContents()).toEqual(titles);
 		await expect(page.locator('[data-poem-edit-caret]')).toHaveCount(0);

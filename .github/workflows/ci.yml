@@ -29,3 +29,7 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm test:e2e
+        env:
+          # Test-only credentials for the loopback dev server; the editor's browser cases need them.
+          POEM_EDIT_USER: ci-editor
+          POEM_EDIT_PASSWORD: ci-loopback-only

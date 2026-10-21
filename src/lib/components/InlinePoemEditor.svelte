@@ -36,7 +36,6 @@
 	let selection: Range | null = null;
 	let retry: { key: string; operationId: string } | null = null;
 	let loading: Promise<void> | null = null;
-	let editButton: HTMLButtonElement;
 	let typing: ReturnType<typeof createPoemTypingHistory> | null = null;
 	let unsubscribeTyping: (() => void) | undefined;
 	let typingState = { canUndo: false, canRedo: false };
@@ -79,6 +78,7 @@
 	async function performLoad(discard: boolean) {
 		try {
 			const response = await fetch(endpoint, { cache: 'no-store' });
+			if (response.status === 401) return; // the sign-in prompt was declined: stay out, say nothing
 			if (!response.ok) throw new Error('Could not load saved edits. Try again.');
 			const result = await response.json();
 			available = result.available;
@@ -140,6 +140,27 @@
 		}
 	}
 
+	/** ⌥⌘E: enter editing, or leave it, saving what changed. The poem page owns the chord. */
+	export async function toggle() {
+		if (saving || loading) return;
+		if (!editing) {
+			await begin();
+			return;
+		}
+		if (!changed) {
+			finish();
+			message = '';
+			return;
+		}
+		if (!available) {
+			restoreDraftDOM();
+			finish();
+			message = 'Not saved: saving isn’t connected here.';
+			return;
+		}
+		await save(true);
+	}
+
 	async function begin() {
 		if (!loaded) {
 			await loadSaved();
@@ -148,11 +169,10 @@
 		original = currentDocument();
 		bodySnapshot = snapshotTree(body!);
 		headingSnapshot = heading ? snapshotTree(heading) : undefined;
-		editing = true;
 		changed = false;
-		message = available
-			? 'Edit the words where they are. Save when you’re ready.'
-			: 'Try editing here. Saving isn’t connected on this preview yet.';
+		message = available ? '' : 'Saving isn’t connected here; what you type stays only until you leave.';
+		// The words become editable, focused and carrying the caret in one step, so the
+		// first keystroke after the chord lands in the poem.
 		for (const element of [body, heading])
 			if (element) {
 				element.contentEditable = 'true';
@@ -162,7 +182,6 @@
 				element.spellcheck = false;
 			}
 		preparePoemEditing(body!);
-		await tick();
 		body!.focus();
 		placePoemCaretAtEnd(body!);
 		typing = createPoemTypingHistory({
@@ -175,6 +194,8 @@
 		unsubscribeTyping = typing.subscribe((state) => {
 			typingState = state;
 		});
+		editing = true;
+		await tick();
 	}
 
 	function finish() {
@@ -205,10 +226,10 @@
 		restoreDraftDOM();
 		finish();
 		message = 'Changes discarded.';
-		editButton?.focus();
 	}
 
-	async function save() {
+	/** @param quiet true when leaving by ⌥⌘E: a success shows nothing, a failure keeps editing open and says why. */
+	async function save(quiet = false) {
 		let document: PoemDocument;
 		try {
 			document = currentDocument();
@@ -229,8 +250,7 @@
 		restoreDraftDOM();
 		finish();
 		await apply(result.document);
-		message = 'Saved. Your Notion source is unchanged.';
-		editButton?.focus();
+		message = quiet ? '' : 'Saved. Your Notion source is unchanged.';
 	}
 
 	function onInput() {
@@ -275,7 +295,34 @@
 		onInput();
 	}
 	function onKey(event: KeyboardEvent) {
-		if (!editing || saving) return;
+		const chord = (event.metaKey || event.ctrlKey) && !event.altKey;
+		const key = event.key.toLowerCase();
+		if (!editing) {
+			// After leaving, ⌘Z and ⇧⌘Z reverse the saved edits of this visit.
+			if (
+				chord &&
+				key === 'z' &&
+				!historyState.pending &&
+				(historyState.undoStack.length || historyState.redoStack.length)
+			) {
+				event.preventDefault();
+				if (event.shiftKey) {
+					if (historyState.canRedo) void history.redo();
+				} else if (historyState.canUndo) void history.undo();
+			}
+			return;
+		}
+		if (saving) return;
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			cancel();
+			return;
+		}
+		if (chord && targetIsInPoem(event) && (key === 'b' || key === 'i')) {
+			event.preventDefault();
+			format(key === 'b' ? 'bold' : 'italic');
+			return;
+		}
 		if (
 			(event.metaKey || event.ctrlKey) &&
 			targetIsInPoem(event) &&
@@ -360,7 +407,7 @@
 				selection = window.getSelection()?.getRangeAt(0).cloneRange() || null;
 		};
 		document.addEventListener('selectionchange', rememberSelection);
-		void loadSaved();
+		// Nothing loads until the chord asks: begin() fetches on demand.
 		return () => {
 			unsubscribe();
 			unsubscribeTyping?.();
@@ -381,71 +428,8 @@
 	on:beforeunload={beforeUnload}
 />
 
-<div class:editing class="poem-editor" aria-label="Poem editing">
-	<div class="controls">
-		{#if editing}
-			<span class="editing-label">Editing</span>
-			<button
-				disabled={saving}
-				aria-label="Italic"
-				title="Italic"
-				on:pointerdown|preventDefault={() => format('italic')}
-				on:click={(e) => {
-					if (e.detail === 0) format('italic');
-				}}><em>I</em></button
-			>
-			<button
-				disabled={saving}
-				aria-label="Bold"
-				title="Bold"
-				on:pointerdown|preventDefault={() => format('bold')}
-				on:click={(e) => {
-					if (e.detail === 0) format('bold');
-				}}><strong>B</strong></button
-			>
-			<button
-				disabled={saving || !typingState.canUndo}
-				aria-label="Undo typing"
-				on:pointerdown|preventDefault={() => format('undo')}
-				on:click={(e) => {
-					if (e.detail === 0) format('undo');
-				}}>↶</button
-			>
-			<button
-				disabled={saving || !typingState.canRedo}
-				aria-label="Redo typing"
-				on:pointerdown|preventDefault={() => format('redo')}
-				on:click={(e) => {
-					if (e.detail === 0) format('redo');
-				}}>↷</button
-			>
-			<span class="spacer"></span>
-			<button disabled={saving} on:click={cancel}>Cancel</button>
-			<button class="primary" disabled={!available || saving || !changed} on:click={save}
-				>{saving ? 'Saving…' : 'Save'}</button
-			>
-		{:else}
-			<button
-				class="edit-entry"
-				bind:this={editButton}
-				disabled={saving || historyState.pending}
-				on:click={begin}>✎ Edit poem</button
-			>
-			{#if historyState.undoStack.length || historyState.redoStack.length}
-				<button
-					disabled={!historyState.canUndo}
-					aria-label="Undo saved edit"
-					on:click={() => history.undo()}>↶ Undo</button
-				>
-				<button
-					disabled={!historyState.canRedo}
-					aria-label="Redo saved edit"
-					on:click={() => history.redo()}>↷ Redo</button
-				>
-			{/if}
-		{/if}
-	</div>
-	{#if message}<p role="status">{message}</p>{/if}
+<div class="poem-editor" aria-label="Poem editing">
+	<p role="status" class:shown={!!message}>{message}</p>
 	{#if sourceChanged}<p class="source-warning">
 			The imported source changed after these site edits. Your saved version is shown; review the
 			source before replacing it.
@@ -453,27 +437,26 @@
 	{#if conflict}<button class="resolve" disabled={saving} on:click={() => loadSaved(true)}
 			>Load saved version</button
 		>{/if}
-	{#if editing}<p class="hint">
-			Enter adds a line · Tab indents · Shift Tab leaves · ⌘ / Ctrl S saves
-		</p>{/if}
 </div>
 
 <style>
 	.poem-editor {
-		margin-top: 2rem;
 		font:
 			13px/1.5 system-ui,
 			sans-serif;
 		white-space: normal;
 		max-width: 46rem;
 	}
-	.controls {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.4rem;
+	p {
+		margin: 0;
+		max-width: 40rem;
 	}
-	button {
+	p.shown,
+	.source-warning,
+	.resolve {
+		margin-top: 1rem;
+	}
+	.resolve {
 		min-height: 40px;
 		padding: 0.5rem 0.8rem;
 		border: 1px solid var(--hr);
@@ -482,56 +465,20 @@
 		color: var(--ink);
 		font: inherit;
 	}
-	button:hover {
+	.resolve:hover {
 		border-color: var(--accent-strong);
 	}
-	button:focus-visible {
+	.resolve:focus-visible {
 		outline: 2px solid var(--accent-strong);
 		outline-offset: 3px;
 	}
-	button:disabled {
+	.resolve:disabled {
 		opacity: 0.5;
 		cursor: default;
-	}
-	.primary {
-		background: var(--ink);
-		color: var(--bg);
-	}
-	.edit-entry {
-		background: transparent;
-	}
-	p {
-		margin: 0.5rem 0 0;
-		max-width: 40rem;
-	}
-	.hint {
-		opacity: 0.7;
-		font-size: 11px;
-	}
-	.editing-label {
-		font-size: 11px;
-		text-transform: uppercase;
-		letter-spacing: 0.09em;
-		margin-right: 0.4rem;
-	}
-	.editing {
-		border-top: 1px solid var(--accent);
-		padding-top: 0.8rem;
-	}
-	.spacer {
-		flex: 1;
-	}
-	.resolve {
-		margin-top: 0.5rem;
 	}
 	.source-warning {
 		border-left: 2px solid var(--accent-strong);
 		padding-left: 0.6rem;
-	}
-	@media (max-width: 480px) {
-		.editing-label {
-			display: none;
-		}
 	}
 	:global(.poem [contenteditable='true']) {
 		outline: 1px dashed var(--accent-strong);

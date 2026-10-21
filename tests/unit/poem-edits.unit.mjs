@@ -214,23 +214,36 @@ test('invalid edit bodies and traversal never reach storage', async () => {
 	await assert.rejects(fileStore('/tmp').read('../secret'), /Invalid poem path/);
 });
 
-test('production and LAN requests cannot obtain editing admission', () => {
-	const local = { url: new URL('http://127.0.0.1:5211'), getClientAddress: () => '127.0.0.1' };
-	assert.deepEqual(editAccess(local, { dev: true }), { allowed: true, mode: 'local' });
-	assert.equal(editAccess(local, { dev: true, environment: 'production' }).allowed, false);
-	assert.equal(
-		editAccess(local, { environment: 'preview', siteEnvironment: 'production' }).allowed,
-		false
+test('editing admission needs a storage mode and the owner credentials', () => {
+	const owner = { user: 'owner', password: 'pass word' };
+	const authorized = (user = 'owner', password = 'pass word') =>
+		new Request('http://127.0.0.1:5211/api/poem-edits/a-poem', {
+			headers: { authorization: `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}` }
+		});
+	const local = {
+		url: new URL('http://127.0.0.1:5211'),
+		getClientAddress: () => '127.0.0.1',
+		request: authorized()
+	};
+	assert.deepEqual(editAccess(local, { dev: true, ...owner }), { kind: 'granted', mode: 'local' });
+	assert.deepEqual(editAccess(local, { environment: 'preview', ...owner }), {
+		kind: 'granted',
+		mode: 'preview'
+	});
+	// Where editing exists, missing or wrong credentials are a challenge for the browser's prompt.
+	assert.deepEqual(
+		editAccess({ ...local, request: new Request('http://127.0.0.1:5211/') }, { dev: true, ...owner }),
+		{ kind: 'challenge', mode: 'local' }
 	);
-	assert.equal(editAccess(local, {}).allowed, false);
-	assert.equal(
-		editAccess({ ...local, getClientAddress: () => '192.168.1.2' }, { dev: true }).allowed,
-		false
-	);
-	assert.equal(
-		editAccess({ ...local, url: new URL('http://t.local:5211') }, { dev: true }).allowed,
-		false
-	);
+	assert.equal(editAccess({ ...local, request: authorized('owner', 'wrong') }, { dev: true, ...owner }).kind, 'challenge');
+	assert.equal(editAccess({ ...local, request: authorized('else', 'pass word') }, { dev: true, ...owner }).kind, 'challenge');
+	// Without configured credentials, or outside a storage mode, editing does not exist at all.
+	assert.deepEqual(editAccess(local, { dev: true }), { kind: 'unavailable', mode: null });
+	assert.equal(editAccess(local, { dev: true, environment: 'production', ...owner }).kind, 'unavailable');
+	assert.equal(editAccess(local, { environment: 'preview', siteEnvironment: 'production', ...owner }).kind, 'unavailable');
+	assert.equal(editAccess(local, { ...owner }).kind, 'unavailable');
+	assert.equal(editAccess({ ...local, getClientAddress: () => '192.168.1.2' }, { dev: true, ...owner }).kind, 'unavailable');
+	assert.equal(editAccess({ ...local, url: new URL('http://t.local:5211') }, { dev: true, ...owner }).kind, 'unavailable');
 	assert.equal(
 		editAccess(
 			{
@@ -239,14 +252,10 @@ test('production and LAN requests cannot obtain editing admission', () => {
 					throw new Error();
 				}
 			},
-			{ dev: true }
-		).allowed,
-		false
+			{ dev: true, ...owner }
+		).kind,
+		'unavailable'
 	);
-	assert.deepEqual(editAccess(local, { environment: 'preview' }), {
-		allowed: true,
-		mode: 'preview'
-	});
 });
 
 test('mutation guard requires same Origin and JSON regardless of cookies', () => {

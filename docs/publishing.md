@@ -18,6 +18,8 @@ This repository is public. Latest unpublished revisions go in ignored `src/lib/s
 
 `pnpm build` rejects draft files when `VERCEL_ENV` or `SITE_ENV` is production. The Vercel build command runs that guard. Private pages send `private, no-store` and `noindex, nofollow`; Vercel Authentication protects the complete deployment, including bundles and server data. No share/bypass link is issued for owner review.
 
+Editing a poem on a preview (⌥⌘E on its page) needs the owner's credentials in the project's Preview environment variables, `POEM_EDIT_USER` and `POEM_EDIT_PASSWORD`; the browser asks for them once per session. CI sets test-only values for its loopback server. [Editing guide](editing-poems.md).
+
 Direct preview: from the linked staging checkout, `vercel deploy --target preview`. Preserve the exact deployment URL as the poem review URL; a later automatic Git preview can replace the branch alias with a public-source-only build. Do not delete the local draft source or its audit until an approved publication is reconciled into the public repo.
 
 ## A poem with its own design

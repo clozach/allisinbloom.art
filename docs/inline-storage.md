@@ -5,6 +5,12 @@ its provenance, or a public `.svx` source. The server retains the imported sourc
 hash, the current document, twenty earlier saved versions and fifty save receipts
 in each private record. Each save atomically replaces that complete record.
 
+Both routes require the owner's HTTP Basic credentials (`POEM_EDIT_USER`,
+`POEM_EDIT_PASSWORD`). Without them they answer 401 with `WWW-Authenticate: Basic`,
+which is what makes the browser ask the first time ⌥⌘E reaches the API; the
+comparison is constant-time over digests. Where no credentials or no storage mode
+are configured they answer 404, and the poem page does not listen for the chord.
+
 `GET /api/poem-edits/[slug]` returns `document`, `revision` and `available`.
 `PUT` accepts `document: { title, html }`, the exact preceding `revision` (or
 `null` for an untouched poem), and a fresh `operationId`. A repeated operation

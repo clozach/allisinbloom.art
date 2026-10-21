@@ -8,6 +8,17 @@ import { validSlug } from '$lib/server/poemEdits/record.js';
 import { PoemEditError } from '$lib/server/poemEdits/errors.js';
 
 const headers = { 'cache-control': 'private, no-store', 'x-robots-tag': 'noindex, nofollow' };
+// A 401 with this header makes the browser ask for the owner's credentials once per session.
+const challenge = { ...headers, 'www-authenticate': 'Basic realm="Poem editing", charset="UTF-8"' };
+
+/** @param {ReturnType<typeof poemEditAccess>} access @param {string|null} sourceHash */
+function refusal(access, sourceHash) {
+	if (access.kind === 'unavailable' || !sourceHash)
+		return json({ error: 'Poem editing is unavailable.' }, { status: 404, headers });
+	if (access.kind === 'challenge')
+		return json({ error: 'Sign in to edit.' }, { status: 401, headers: challenge });
+	return null;
+}
 /** @param {unknown} problem */
 function failure(problem) {
 	const status = problem instanceof PoemEditError ? problem.status : 503;
@@ -22,8 +33,8 @@ function failure(problem) {
 export async function GET(event) {
 	const access = poemEditAccess(event);
 	const sourceHash = validSlug(event.params.slug) ? poemSourceHash(event.params.slug) : null;
-	if (!access.allowed || !sourceHash)
-		return json({ error: 'Poem editing is unavailable.' }, { status: 404, headers });
+	const refused = refusal(access, sourceHash);
+	if (refused || !sourceHash) return refused ?? json({ error: 'Poem editing is unavailable.' }, { status: 404, headers });
 	try {
 		const { service, reason } = await configuredPoemEdits(access.mode);
 		if (!service)
@@ -41,8 +52,8 @@ export async function GET(event) {
 export async function PUT(event) {
 	const access = poemEditAccess(event);
 	const sourceHash = validSlug(event.params.slug) ? poemSourceHash(event.params.slug) : null;
-	if (!access.allowed || !sourceHash)
-		return json({ error: 'Poem editing is unavailable.' }, { status: 404, headers });
+	const refused = refusal(access, sourceHash);
+	if (refused || !sourceHash) return refused ?? json({ error: 'Poem editing is unavailable.' }, { status: 404, headers });
 	if (!isSameOriginMutation(event.request, event.url))
 		return json({ error: 'Save from this poem’s own page.' }, { status: 403, headers });
 	try {
