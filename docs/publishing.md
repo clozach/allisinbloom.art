@@ -20,6 +20,10 @@ This repository is public. Latest unpublished revisions go in ignored `src/lib/s
 
 Direct preview: from the linked staging checkout, `vercel deploy --target preview`. Preserve the exact deployment URL as the poem review URL; a later automatic Git preview can replace the branch alias with a public-source-only build. Do not delete the local draft source or its audit until an approved publication is reconciled into the public repo.
 
+## A poem with its own design
+
+A poem that needs its own layout gets its own route folder, `src/routes/poems/<slug>/`, and nothing else changes. For a draft, that folder holds a `+page.server.js` that loads the draft by its slug through `draftPageData` and a `+page.svelte` that wraps the generic draft page (`../[slug]/+page.svelte`) in one element and carries a `<style>` block. Svelte scopes that block to the wrapper, so its rules reach this poem alone and do not follow a client-side navigation to the next poem. A published `.svx` poem carries its `<style>` block directly. Poems with nothing to customise stay on the generic `[slug]` route and gain no files, flags or class names. First case: `all-i-know`, whose line rhythm follows its Notion paragraph blocks; `tests/private-poems.spec.ts` checks the rhythm and that it stays on its own page.
+
 ## Production preparation and rollback
 
 After Al approves both text and public availability, copy the accepted sources into tracked poem pages, remove the private copies, rerun CI, and review the full main…staging comparison. Then publish only the approved commit. Vercel retains prior deployments; use its deployment dashboard to restore the last accepted production build if needed. A production deploy, promotion or rollback requires its own authorization. No browser-facing deployment endpoint or long-lived credential has been added.
