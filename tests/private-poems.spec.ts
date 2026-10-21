@@ -16,10 +16,7 @@ test('private source text, layout and inventory survive every imported poem', as
     }
     const overflow = await poem.evaluate(element => element.scrollWidth > element.clientWidth + 2);
     expect(overflow, `Overflow: ${draft.slug}`).toBe(false);
-    const source = page.locator('.source');
-    await source.locator('summary').click();
-    expect(await source.locator('a').first().getAttribute('href')).toBe(draft.sourceUrl);
-    if (draft.status !== 'verified_latest_in_poems') await expect(source).toContainText('unconfirmed');
+    await expect(page.locator('.source, .review-notice')).toHaveCount(0);
   }
   await page.goto('/review/poems', { waitUntil: 'networkidle' });
   await expect(page.locator('.poem-link')).toHaveCount(drafts.length);
@@ -28,22 +25,23 @@ test('private source text, layout and inventory survive every imported poem', as
 
 test('a poem with its own route keeps its own line rhythm, and only there', async ({ page }) => {
   const styled = drafts.find(draft => draft.slug === 'all-i-know');
-  const plain = drafts.find(draft => draft.slug !== 'all-i-know' && draft.format === 'notion-paragraphs');
-  test.skip(!styled || !plain, 'Private source files are intentionally absent from public CI');
+  test.skip(!styled, 'Private source files are intentionally absent from public CI');
   const rhythm = () => page.locator('.notion-poem .verse').first().evaluate(element => {
     const style = getComputedStyle(element);
     return parseFloat(style.lineHeight) / parseFloat(style.fontSize);
   });
-  await page.goto(`/poems/${plain.slug}`, { waitUntil: 'networkidle' });
-  const shared = await rhythm();
   await page.goto('/poems/all-i-know', { waitUntil: 'networkidle' });
   expect(await page.locator('.notion-poem .verse').textContent()).toBe(styled.sourceText);
   expect(await rhythm()).toBeCloseTo(2.8, 1);
-  expect(shared).not.toBeCloseTo(2.8, 1);
-  // Leave by client-side navigation: Svelte's scoping keeps the rhythm from following.
-  await page.locator('.source summary').click();
-  await page.locator('.source a[href="/review/poems"]').click();
-  await page.locator(`.poem-link[href="/poems/${plain.slug}"]`).click();
-  await expect(page).toHaveURL(`/poems/${plain.slug}`);
-  expect(await rhythm()).toBeCloseTo(shared, 1);
+  // The neighbour the nav leads to, loaded on its own, gives the rhythm it should keep.
+  const next = await page.locator('a.nav-link.next').getAttribute('href');
+  expect(next).not.toBe('/poems/all-i-know');
+  await page.goto(next!, { waitUntil: 'networkidle' });
+  const own = await rhythm();
+  expect(own).not.toBeCloseTo(2.8, 1);
+  // Leave all i know by client-side navigation: Svelte's scoping keeps its rhythm from following.
+  await page.goto('/poems/all-i-know', { waitUntil: 'networkidle' });
+  await page.locator('a.nav-link.next').click();
+  await expect(page).toHaveURL(next!);
+  expect(await rhythm()).toBeCloseTo(own, 1);
 });

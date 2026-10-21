@@ -1,5 +1,5 @@
 ---
-title: a-life-worth-living
+title: a life worth living
 date: "1999-11-11"
 ---
 

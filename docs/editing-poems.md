@@ -2,8 +2,8 @@
 
 On a poem page, press **⌥⌘E** (Ctrl+Alt+E elsewhere). The first time, the
 browser asks for the owner's name and password; then the words, and the title
-when the poem shows one, become editable where they are, with a dashed outline
-and a caret. Nothing on the page says editing exists until that moment.
+when the poem shows one, become editable where they are. The caret is the only
+sign: no outline, no border. Nothing on the page says editing exists until then.
 
 - **Enter** adds a line; **Tab** inserts indentation. **Shift Tab** leaves the
   text with the keyboard.
@@ -11,8 +11,8 @@ and a caret. Nothing on the page says editing exists until that moment.
   text keeps its characters and spacing, without importing formatting from
   another app.
 - **⌘Z** / **⇧⌘Z** undo and redo typing while you edit.
-- **⌥⌘E** again saves what changed and leaves editing without a word: the outline
-  and caret go, and that is the only sign. With nothing changed it simply leaves.
+- **⌥⌘E** again saves what changed and leaves editing without a word: the caret
+  goes, and that is the only sign. With nothing changed it simply leaves.
 - **⌘S** saves and stays. **Esc** discards this session's changes and leaves.
 - After leaving, **⌘Z** / **⇧⌘Z** reverse saved changes made during that visit.
 

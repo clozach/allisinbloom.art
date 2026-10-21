@@ -480,13 +480,9 @@
 		border-left: 2px solid var(--accent-strong);
 		padding-left: 0.6rem;
 	}
+	/* While editing, the caret is the only sign: no outline, no border (Al, 2026-10-21). */
 	:global(.poem [contenteditable='true']) {
-		outline: 1px dashed var(--accent-strong);
-		outline-offset: 2px;
-		border-radius: 2px;
+		outline: none;
 		caret-color: var(--ink);
-	}
-	:global(.poem [contenteditable='true']:focus) {
-		outline-style: solid;
 	}
 </style>
