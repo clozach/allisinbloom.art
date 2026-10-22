@@ -12,6 +12,16 @@ build:
 preview:
     pnpm preview
 
+# regenerate the byline signature from its master, static/artist-sig.png
+# (1317x300, black ink with alpha; the page tints it with --sig-filter).
+# Lossless WebP at 160/288/432 px wide (1x desktop at 9rem, 2x and 1.75x
+# phones, 3x phones) plus a 288 px PNG fallback. cwebp: `brew install webp`;
+# sips ships with macOS. Commit the four files in src/lib/assets/.
+sig:
+    mkdir -p src/lib/assets
+    for w in 160 288 432; do cwebp -quiet -lossless -z 9 -resize $w 0 static/artist-sig.png -o src/lib/assets/artist-sig-$w.webp; done
+    sips --resampleHeightWidth 66 288 static/artist-sig.png --out src/lib/assets/artist-sig-288.png >/dev/null
+
 # ── always-on review surface ───────────────────────────────────────────
 # localhost:5199 (LAN-visible, HMR) is kept up 100% of the time by a launchd
 # LaunchAgent — starts at login, restarts within ~10s if killed. Installed
