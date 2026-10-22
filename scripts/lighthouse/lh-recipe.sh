@@ -71,6 +71,10 @@ case "$cmd" in
   audit)
     label="${1:?label}"; url="${2:?url}"; runs="${3:-5}"; out="${4:-./lh-out}"; mkdir -p "$out"
     [ -x "$LH_BIN" ] || { echo "run: $0 setup" >&2; exit 66; }
+    # a failed run leaves no report, so an older report under the same name would be summarised as new
+    for f in "$out/$label"-mobile-*.json "$out/$label"-desktop-*.json; do
+      [ -e "$f" ] && { echo "reports for $label are already in $out; use a new label (the README's carry the commit) or move them away first" >&2; exit 73; }
+    done
     curl -sSk -o /dev/null --max-time 30 "$url" || { echo "cannot reach $url (is the front running?)" >&2; exit 1; }
     for preset in mobile desktop; do
       extra=(); [ "$preset" = desktop ] && extra=(--preset=desktop)
@@ -83,7 +87,7 @@ case "$cmd" in
           || echo "run $n $preset failed (see $out/$label-$preset-$n.err)" >&2
       done
     done
-    node "$here/lh-median.mjs" "$out" "$label"
+    node "$here/lh-median.mjs" "$out" "$label" "$runs"
     ;;
   *) echo "unknown subcommand: $cmd" >&2; exit 64;;
 esac
