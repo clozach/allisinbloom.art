@@ -10,7 +10,11 @@ const published = readFileSync(new URL('../../static/route.txt', import.meta.url
 const first = published[0];
 
 test('production caches a published poem at the CDN only, under its own header name', () => {
-	const headers = poemCdnCacheHeaders(first, { environment: 'production', published });
+	const headers = poemCdnCacheHeaders(first, {
+		environment: 'production',
+		editMode: null,
+		published
+	});
 	assert.deepEqual(headers, { 'vercel-cdn-cache-control': 'max-age=31536000' });
 	assert.equal(Object.keys(headers).includes('cache-control'), false);
 	headers['vercel-cdn-cache-control'] = 'changed';
@@ -19,13 +23,28 @@ test('production caches a published poem at the CDN only, under its own header n
 
 test('previews, staging, development and unset environments never cache', () => {
 	for (const environment of ['preview', 'development', undefined, '', 'Production']) {
-		assert.equal(poemCdnCacheHeaders(first, { environment, published }), null, String(environment));
+		assert.equal(
+			poemCdnCacheHeaders(first, { environment, editMode: null, published }),
+			null,
+			String(environment)
+		);
 	}
+});
+
+test('production never caches where a saved version can be shown, or when the mode is not given', () => {
+	for (const editMode of ['preview', 'local', undefined]) {
+		assert.equal(
+			poemCdnCacheHeaders(first, { environment: 'production', editMode, published }),
+			null,
+			String(editMode)
+		);
+	}
+	assert.equal(poemCdnCacheHeaders(first, { environment: 'production', published }), null);
 });
 
 // A fixed list, so publishing a poem (adding it to route.txt) never changes these answers.
 test('only poems listed in route.txt, never a draft or another page', () => {
-	const options = { environment: 'production', published: ['listed-poem'] };
+	const options = { environment: 'production', editMode: null, published: ['listed-poem'] };
 	assert.deepEqual(poemCdnCacheHeaders('listed-poem', options), POEM_CDN_CACHE);
 	assert.equal(poemCdnCacheHeaders(null, options), null);
 	assert.equal(poemCdnCacheHeaders('not-a-poem', options), null);

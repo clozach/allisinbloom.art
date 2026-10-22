@@ -16,10 +16,13 @@ export async function load(event) {
 	// A poem page shows its saved site version to every reader; the owner's chord edits it.
 	const match = event.url.pathname.match(/^\/poems\/([^/]+)\/?$/)?.[1];
 	const slug = match ? decodeURIComponent(match) : null;
-	const editedPoem = slug ? await savedPoemDocument(slug, poemEditMode(event)) : null;
-	// Production only: a published poem's HTML may come from Vercel's CDN (see poemCdnCache.js).
+	const editMode = poemEditMode(event);
+	const editedPoem = slug ? await savedPoemDocument(slug, editMode) : null;
+	// Production only, and only while no saved version can be shown: a published poem's
+	// HTML may then come from Vercel's CDN (see poemCdnCache.js).
 	const cdn = poemCdnCacheHeaders(slug, {
 		environment: env.VERCEL_ENV,
+		editMode,
 		published,
 		drafts: draftSlugs
 	});
