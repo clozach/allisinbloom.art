@@ -18,6 +18,8 @@ done
 $L unfront 5214; $L unfront 5215; $L stop /tmp/ab-build
 ```
 
+`build` replaces everything in its folder, so it takes only a new folder or one it built before (it leaves a `.lh-build` marker there); it refuses any other folder, and an unknown revision, before deleting anything.
+
 `audit` runs mobile then desktop, five runs each, and prints per preset the median and the minimum of each category score, the median and worst of each metric, the audits still below 1, and for every run whether a font file finished before the observed first paint. Report median and minimum: one run is not a measurement (production's mobile score has swung between 70 and 95 in one sitting). A change counts only if it holds behind both fronts. To compare two commits, build both and audit them one after the other on the same ports.
 
 Run one Lighthouse at a time and nothing heavy beside it (the browser tests use about nine workers); a `benchmarkIndex` far below the others marks a run taken on a busy machine. The protected Vercel previews answer anonymous requests with a sign-in page, so they cannot be audited this way.

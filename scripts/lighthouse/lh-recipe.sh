@@ -2,7 +2,7 @@
 # lh-recipe.sh — measure the site with Lighthouse the way production behaves.
 # See README.md beside this file. Subcommands:
 #   setup                               install the pinned Lighthouse and a throwaway TLS certificate
-#   build  <rev> <dir>                  git archive <rev> into <dir>, install, production build
+#   build  <rev> <dir>                  git archive <rev> into <dir> (a new folder, or an earlier build, which it replaces), install, production build
 #   serve  <dir> [port=5212]            vite preview of that build on 127.0.0.1
 #   front  <upstream> <listen> [ms=300] Vercel-like edge (TLS, HTTP/2, brotli, cache headers, HTML delay)
 #   unfront <listen>                    stop that front
@@ -34,10 +34,15 @@ case "$cmd" in
     ;;
   build)
     rev="${1:?rev}"; dir="${2:?dir}"; node_ok
-    rm -rf "$dir"; mkdir -p "$dir"
-    git -C "$SITE" archive "$rev" | tar -x -C "$dir"   # tracked files only, as Vercel builds: no private drafts, no .env
+    # nothing is deleted until the rev resolves and <dir> is new, empty, or an earlier build of this recipe
+    sha="$(git -C "$SITE" rev-parse --verify --quiet "$rev^{commit}")" || { echo "unknown rev: $rev" >&2; exit 64; }
+    if [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ] && [ ! -f "$dir/.lh-build" ]; then
+      echo "$dir is not empty and was not made by lh-recipe build; pick a new folder (or empty it yourself)" >&2; exit 73
+    fi
+    rm -rf "$dir"; mkdir -p "$dir"; touch "$dir/.lh-build"
+    git -C "$SITE" archive "$sha" | tar -x -C "$dir"   # tracked files only, as Vercel builds: no private drafts, no .env
     cd "$dir"; pnpm install --frozen-lockfile >/dev/null
-    VERCEL_ENV=production VERCEL_GIT_COMMIT_SHA="$(git -C "$SITE" rev-parse "$rev")" pnpm build 2>&1 | tail -2
+    VERCEL_ENV=production VERCEL_GIT_COMMIT_SHA="$sha" pnpm build 2>&1 | tail -2
     ;;
   serve)
     dir="${1:?dir}"; port="${2:-5212}"; port_ok "$port"; cd "$dir"
