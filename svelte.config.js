@@ -7,7 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-	kit: { adapter: adapter() },
+	// inline every route's CSS into the page head: one less round trip before
+	// first paint (src/app.css carries the fonts and the reset)
+	kit: { adapter: adapter(), inlineStyleThreshold: Infinity },
 	preprocess: [
 		mdsvex({
 			layout: {

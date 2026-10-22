@@ -27,7 +27,7 @@
 	}
 
 	/* Stanza gaps: each markdown stanza compiles to its own <p>, and
-     global.css's `* { margin: 0 }` reset would otherwise fuse them. */
+     app.css's `* { margin: 0 }` reset would otherwise fuse them. */
 	.poem-content :global(p) {
 		margin: 1em 0;
 		white-space: pre-wrap;
