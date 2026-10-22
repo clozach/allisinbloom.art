@@ -78,6 +78,9 @@ const server = http2.createSecureServer(
 			});
 			req.pipe(p);
 		};
+		// Every HTML request waits and nothing is stored: this stands in for a warm or slow server
+		// function, never for Vercel's CDN cache, so a caching change (poemCdnCache.js) cannot be
+		// measured here. The cache-control set above also hides the upstream's own value.
 		if (isHtml) setTimeout(go, Number(delay));
 		else go();
 	}

@@ -6,8 +6,10 @@
 // uncached. Today that mode is null on production, so production poems are cached
 // and saved edits arrive there by deploy; if editing on production is ever approved,
 // those pages stop being cached here without this file changing. Vercel keeps a
-// separate cache per deployment, so a release starts afresh. Previews, staging and
-// local servers are never cached.
+// separate cache per deployment, so a release starts afresh, and per region, dropping
+// rarely requested entries: this means fewer cold starts where readers are, not none,
+// since a first request in a quiet region still wakes the function. Previews, staging
+// and local servers are never cached.
 //
 // vercel-cdn-cache-control is meant for Vercel's CDN only; the browser keeps the
 // default cache-control. Using its own header name also avoids a clash with the
