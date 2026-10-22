@@ -71,11 +71,13 @@ case "$cmd" in
   audit)
     label="${1:?label}"; url="${2:?url}"; runs="${3:-5}"; out="${4:-./lh-out}"; mkdir -p "$out"
     [ -x "$LH_BIN" ] || { echo "run: $0 setup" >&2; exit 66; }
+    curl -sSk -o /dev/null --max-time 30 "$url" || { echo "cannot reach $url (is the front running?)" >&2; exit 1; }
     for preset in mobile desktop; do
       extra=(); [ "$preset" = desktop ] && extra=(--preset=desktop)
       for n in $(seq 1 "$runs"); do
-        curl -sk -o /dev/null --max-time 30 "$url"   # warm the server first
-        "$LH_BIN" "$url" "${extra[@]}" --only-categories=performance,accessibility,best-practices,seo \
+        curl -sk -o /dev/null --max-time 30 "$url" || true   # warm the server first; a slow answer must not end the series
+        # ${extra[@]+...}: macOS's bash 3.2 calls an empty array unbound under set -u
+        "$LH_BIN" "$url" ${extra[@]+"${extra[@]}"} --only-categories=performance,accessibility,best-practices,seo \
           --output=json --output-path="$out/$label-$preset-$n.json" \
           --chrome-flags="--headless=new --ignore-certificate-errors" --quiet 2> "$out/$label-$preset-$n.err" \
           || echo "run $n $preset failed (see $out/$label-$preset-$n.err)" >&2
