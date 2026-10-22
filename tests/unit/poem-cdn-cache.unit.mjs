@@ -23,15 +23,12 @@ test('previews, staging, development and unset environments never cache', () => 
 	}
 });
 
+// A fixed list, so publishing a poem (adding it to route.txt) never changes these answers.
 test('only poems listed in route.txt, never a draft or another page', () => {
-	assert.equal(poemCdnCacheHeaders(null, { environment: 'production', published }), null);
-	assert.equal(poemCdnCacheHeaders('width-test', { environment: 'production', published }), null);
-	assert.equal(
-		poemCdnCacheHeaders('wood-between-the-worlds', { environment: 'production', published }),
-		null
-	);
-	assert.equal(
-		poemCdnCacheHeaders(first, { environment: 'production', published, drafts: [first] }),
-		null
-	);
+	const options = { environment: 'production', published: ['listed-poem'] };
+	assert.deepEqual(poemCdnCacheHeaders('listed-poem', options), POEM_CDN_CACHE);
+	assert.equal(poemCdnCacheHeaders(null, options), null);
+	assert.equal(poemCdnCacheHeaders('not-a-poem', options), null);
+	assert.equal(poemCdnCacheHeaders('unlisted-poem', options), null);
+	assert.equal(poemCdnCacheHeaders('listed-poem', { ...options, drafts: ['listed-poem'] }), null);
 });
