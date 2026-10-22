@@ -4,7 +4,7 @@ default: start
 start:
     pnpm dev
 
-# production build to ./build
+# production build (adapter-vercel writes .vercel/output)
 build:
     pnpm build
 

@@ -195,6 +195,4 @@ To create a production version of the app:
    nvm use; pnpm run build
 ```
 
-You can preview the production build with `nvm use; npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+The Vercel adapter writes it to `.vercel/output`. Preview it with `nvm use; pnpm preview`; to measure it with Lighthouse the way production behaves, see `scripts/lighthouse/README.md`.
