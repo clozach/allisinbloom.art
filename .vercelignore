@@ -6,6 +6,7 @@ private-sources
 # Draft JSON is intentionally included in protected direct Preview deployments.
 
 evidence
+lh-out
 test-results
 playwright-report
 .poem-edits

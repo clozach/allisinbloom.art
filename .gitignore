@@ -35,4 +35,6 @@ private-sources/
 
 src/lib/server/review/*.json
 evidence/
+# Lighthouse reports (scripts/lighthouse/); the recipe writes outside the repo by default
+/lh-out/
 /.poem-edits/

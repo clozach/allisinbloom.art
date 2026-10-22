@@ -6,7 +6,7 @@
 #   serve  <dir> [port=5212]            vite preview of that build on 127.0.0.1
 #   front  <upstream> <listen> [ms=300] Vercel-like edge (TLS, HTTP/2, brotli, cache headers, HTML delay)
 #   unfront <listen>                    stop that front
-#   audit  <label> <url> [runs=5] [out=./lh-out]   mobile then desktop, <runs> each, then the summary
+#   audit  <label> <url> [runs=5] [out=$LH_HOME/out]   mobile then desktop, <runs> each, then the summary (reports stay outside the repo)
 #   stop   <dir>                        stop the server `serve` started for <dir>
 # Ports 5212-5215 only (5199 is the always-on dev server, 5211 Playwright's).
 set -euo pipefail
@@ -69,7 +69,7 @@ case "$cmd" in
     done; true
     ;;
   audit)
-    label="${1:?label}"; url="${2:?url}"; runs="${3:-5}"; out="${4:-./lh-out}"; mkdir -p "$out"
+    label="${1:?label}"; url="${2:?url}"; runs="${3:-5}"; out="${4:-$LH_HOME/out}"; mkdir -p "$out"
     [ -x "$LH_BIN" ] || { echo "run: $0 setup" >&2; exit 66; }
     # a failed run leaves no report, so an older report under the same name would be summarised as new
     for f in "$out/$label"-mobile-*.json "$out/$label"-desktop-*.json; do
