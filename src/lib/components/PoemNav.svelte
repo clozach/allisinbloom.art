@@ -77,11 +77,15 @@
     gap: 0.5em;
     font-style: italic;
     font-size: 0.85em;
-    opacity: 0.7;
+    /* ink, not the site-wide a:hover lavender (2:1 in light); 0.75 keeps the
+       resting title at 4.9:1 against the 4.5:1 line (0.7 gave 4.35:1) */
+    color: var(--ink);
+    opacity: 0.75;
     transition: opacity 0.2s;
   }
 
-  .nav-link:hover {
+  .nav-link:hover,
+  .nav-link:focus-visible {
     opacity: 1;
   }
   /* no º here: in the poem nav the arrows and the whitespace already say
@@ -111,7 +115,7 @@
     color: var(--ink);
     font-size: var(--size);
     line-height: 0;
-    opacity: 0.7;
+    opacity: 0.75;
     transition: opacity 0.2s;
   }
   .sky::after {
