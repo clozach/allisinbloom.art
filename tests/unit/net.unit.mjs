@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NODES, nodeByCode, nearestNode, guessNode, angle } from '../../src/lib/net/nodes.js';
-import { globe, projector, cellOwners, CX, CY } from '../../src/lib/net/globe.js';
+import { globe, netImage, projector, cellOwners, CX, CY } from '../../src/lib/net/globe.js';
 import { fnv1a, minuteKey, dayKey, pickPoem, pictureSeed } from '../../src/lib/net/pick.js';
 import { readingTime, measureText, jitteredWait, aboutWait, slowWpm, DEFAULT_PACE } from '../../src/lib/net/reading.js';
 import { whereFrom } from '../../src/lib/net/where.js';
@@ -56,6 +56,22 @@ test('the globe draws front and back lines, dots, the lit region and every node'
   assert.equal(globe({ lat: 0, lon: 0 }).cells, '', 'no lit node, no region');
   assert.ok(g.front.length + g.back.length + g.dots.length + g.cells.length < 30000, 'path data stays small');
   assert.doesNotMatch(g.front, /\.\d/, 'whole units only');
+  assert.doesNotMatch(g.front + g.cells, / /, 'no spaces: the path data travels in a data: URI as it is');
+});
+
+test('the first frame is a picture: one SVG document per theme in a data: URI, safe in an attribute', () => {
+  const g = globe({ lat: 37.77, lon: -122.42, lit: 'sfo1' });
+  const light = netImage(g, 'light', 'sfo1');
+  const dark = netImage(g, 'dark', 'sfo1');
+  assert.ok(light.startsWith('data:image/svg+xml,%3Csvg '));
+  assert.ok(light.endsWith('%3C/svg%3E'));
+  for (const uri of [light, dark]) {
+    assert.doesNotMatch(uri, /[#<>"]/, 'no raw #, <, > or quotes');
+    assert.ok(uri.length < 40000, `size ${uri.length}`);
+  }
+  assert.notEqual(light, dark);
+  assert.ok(light.includes('%23533737') && dark.includes('%23e2c8ee'));
+  assert.ok(!netImage(globe({ lat: 0, lon: 0 }), 'light', null).includes("r='28'"), 'no lit node, no halo');
 });
 
 test('every cell has one owner and every node owns a cell', () => {

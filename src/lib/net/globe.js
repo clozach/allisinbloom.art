@@ -2,6 +2,7 @@
 // code draws the first frame on the server and every dragged frame in the browser.
 // Orthographic projection in a 1000 × 1000 box; the sphere's radius is 440.
 import { NODES, nearestNode } from './nodes.js';
+import { hslToHex } from '../bloom/generate.js';
 
 export const SIZE = 1000;
 export const CX = 500;
@@ -48,7 +49,7 @@ function splitLine(points, out) {
   let run = [];
   let side = points[0].depth >= 0;
   const flush = () => {
-    if (run.length > 1) (side ? out.front : out.back).push('M' + run.map((q) => `${f(q.x)},${f(q.y)}`).join(' '));
+    if (run.length > 1) (side ? out.front : out.back).push('M' + run.map((q) => `${f(q.x)},${f(q.y)}`).join('L'));
     run = [];
   };
   for (const q of points) {
@@ -133,7 +134,7 @@ export function globe({ lat, lon, step = 15, cell = 5, lit = null }) {
         for (let y = a; y < a + cell; y += sub) ring.push(proj(y, m + cell));
         for (let x = m + cell; x > m; x -= sub) ring.push(proj(a + cell, x));
         for (let y = a + cell; y > a; y -= sub) ring.push(proj(y, m));
-        if (ring.every((q) => q.depth > 0.02)) cells.push('M' + ring.map((q) => `${f(q.x)},${f(q.y)}`).join(' ') + 'Z');
+        if (ring.every((q) => q.depth > 0.02)) cells.push('M' + ring.map((q) => `${f(q.x)},${f(q.y)}`).join('L') + 'Z');
       }
     }
   }
@@ -144,4 +145,42 @@ export function globe({ lat, lon, step = 15, cell = 5, lit = null }) {
   });
 
   return { front: lines.front.join(''), back: lines.back.join(''), dots: dots.join(''), cells: cells.join(''), nodes };
+}
+
+// The first frame as a picture. An inline SVG's shapes are not a "largest contentful
+// paint" for the browser, so a page that is only the globe has no paint to measure and
+// Lighthouse gives it no performance score. The server therefore draws the frame once
+// more as a data: image inside the SVG, which is a paint, and the live paths take its
+// place on hydration. Colours are the page's theme tokens (src/routes/+layout.svelte).
+const THEMES = {
+  light: { ink: '#533737', accent: '#caa8d6', strong: '#b077c5' },
+  dark: { ink: hslToHex(9, 0.25, 0.86), accent: '#d3b3e0', strong: '#e2c8ee' }
+};
+
+/**
+ * One rendered frame as an SVG document in a data: URI, light or dark.
+ * @param {ReturnType<typeof globe>} g @param {'light' | 'dark'} theme @param {string | null} lit
+ */
+export function netImage(g, theme, lit) {
+  const c = THEMES[theme];
+  const dot = lit ? g.nodes.find((n) => n.code === lit) : undefined;
+  const nodes = g.nodes
+    .filter((n) => n.code !== lit)
+    .map((n) => `<circle cx='${n.x}' cy='${n.y}' r='5' fill='${c.ink}' fill-opacity='${n.front ? 0.8 : 0.12}'/>`)
+    .join('');
+  const glow = lit
+    ? `<g opacity='0.8'>${g.cells ? `<path d='${g.cells}' fill='${c.accent}' fill-opacity='0.3' stroke='${c.accent}' stroke-opacity='0.3' stroke-width='0.6'/>` : ''}${dot && dot.front ? `<circle cx='${dot.x}' cy='${dot.y}' r='28' fill='${c.accent}' fill-opacity='0.55'/>` : ''}</g>`
+    : '';
+  const litDot = dot && dot.front ? `<circle cx='${dot.x}' cy='${dot.y}' r='8' fill='${c.strong}'/>` : '';
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${SIZE} ${SIZE}'>` +
+    `<circle cx='${CX}' cy='${CY}' r='${R}' fill='none' stroke='${c.ink}' stroke-opacity='0.3' stroke-width='1.5'/>` +
+    `<path d='${g.back}' fill='none' stroke='${c.ink}' stroke-opacity='0.09' stroke-width='1'/>` +
+    glow +
+    `<path d='${g.front}' fill='none' stroke='${c.ink}' stroke-opacity='0.38' stroke-width='1.2'/>` +
+    `<path d='${g.dots}' fill='none' stroke='${c.ink}' stroke-opacity='0.55' stroke-width='4' stroke-linecap='round'/>` +
+    nodes +
+    litDot +
+    '</svg>';
+  return 'data:image/svg+xml,' + svg.replace(/%/g, '%25').replace(/#/g, '%23').replace(/</g, '%3C').replace(/>/g, '%3E');
 }

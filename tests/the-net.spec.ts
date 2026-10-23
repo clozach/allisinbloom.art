@@ -102,12 +102,28 @@ test.describe('The Net', () => {
     await ctx.close();
   });
 
-  test('the Net needs no JavaScript to show itself', async ({ browser }) => {
+  test('the Net needs no JavaScript to show itself: the server frame is a picture', async ({ browser }) => {
     const ctx = await browser.newContext({ javaScriptEnabled: false });
     const page = await ctx.newPage();
     await page.goto('/?node=syd1');
     await expect(page.getByRole('img', { name: /Sydney answered you/ })).toBeVisible();
+    await expect(page.locator('.net image.frame.light')).toHaveAttribute('href', /^data:image\/svg\+xml,/);
+    await expect(page.locator('.net image.frame.light')).toBeVisible();
+    await expect(page.locator('.net image.frame.dark')).toBeHidden();
+    await expect(page.locator('.net path.front')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Poem?' })).toHaveAttribute('href', /^\/poems\//);
+    await ctx.close();
+  });
+
+  test('once the page runs, the live paths replace the picture, and the dark frame shows in dark mode', async ({ browser }) => {
+    const ctx = await browser.newContext({ colorScheme: 'dark' });
+    const page = await ctx.newPage();
+    const warnings: string[] = [];
+    page.on('console', (m) => { if (m.type() === 'warning' || m.type() === 'error') warnings.push(m.text()); });
+    await page.goto('/?node=syd1', { waitUntil: 'networkidle' });
+    await expect(page.locator('.net path.front')).toHaveCount(1);
+    await expect(page.locator('.net image.frame')).toHaveCount(0);
+    expect(warnings.filter((w) => /hydration/i.test(w))).toEqual([]);
     await ctx.close();
   });
 });
