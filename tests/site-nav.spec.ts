@@ -24,7 +24,7 @@ test.describe('Site nav', () => {
     expect(after).toBe('none');
     await sig.click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('img', { name: /The Net: a wire globe/ })).toBeVisible();
+    await expect(page.getByRole('img', { name: /The Net: a globe of the network's branches/ })).toBeVisible();
   });
 
   test('the Bluesky butterfly appears with the message, centred, and opens a new tab', async ({ page }) => {

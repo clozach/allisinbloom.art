@@ -46,8 +46,9 @@ poem page, navigation and index-card components; Figma edits do not deploy the s
 
 ## The Net (the front door since 2026-10-23)
 
-`/` is a wire-frame Earth with the network's nodes; the one that answered you is
-lit, and the page's one offer, *Poem?*, appears on hover, tap or focus. A poem
+`/` is a globe of the Internet's hubs and the branches between them (submarine
+cables and backbone hops, from licensed data; see `/credits`); the region that
+answered you is lit, and the page's one offer, *Poem?*, appears on hover, tap or focus. A poem
 page offers nothing until a slow reader could have finished the poem, then a
 message, then about ninety seconds later a small picture of the day for your
 region. [The Net](docs/the-net.md) has the whole of it: the pieces, the clock,

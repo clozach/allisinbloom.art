@@ -1,12 +1,12 @@
 <script>
-	// The Net: a wire-frame Earth with the network's nodes, the one that answered
-	// lit, its service region glowing. No explanation is given. Hover, a tap or
-	// keyboard focus brings up the one offer, "Poem?". Drag or the arrow keys turn
-	// the Earth (Home brings your node back); the first frame is drawn on the
-	// server, so the page needs no JavaScript to show the Net.
+	// The Net: a globe of the Internet's hubs and the branches between them, the
+	// region that answered lit, its hubs and branches glowing. No explanation is
+	// given. Hover, a tap or keyboard focus brings up the one offer, "Poem?". Drag or
+	// the arrow keys turn the Earth (Home brings your node back); the first frame is
+	// drawn on the server, so the page needs no JavaScript to show the Net.
 	import { onMount } from 'svelte';
-	import { NODES, nodeByCode, guessNode } from '$lib/net/nodes.js';
-	import { globe, netImage, SIZE, CX, CY, R } from '$lib/net/globe.js';
+	import { nodeByCode, guessNode } from '$lib/net/nodes.js';
+	import { globe, netImage, COUNTS, LICENSE, CREDITS, SIZE, CX, CY, R } from '$lib/net/globe.js';
 	import { pickPoem } from '$lib/net/pick.js';
 
 	/** @type {string | null} the node that answered this request; null when unknown */
@@ -18,7 +18,9 @@
 	/** @type {string} the UTC minute the offer belongs to */
 	export let minute = '';
 
-	const STEP = 15;
+	// the server's frame leaves out terrestrial hops under a degree and a half, about
+	// 150 km, invisible at this size; the live globe draws them
+	const FRAME_MIN_TERR_DEG = 1.35;
 	const start = nodeByCode(lit);
 	let lat = start?.lat ?? 20;
 	let lon = start?.lon ?? 0;
@@ -29,15 +31,16 @@
 	let live = false;
 	/** @type {HTMLElement} */
 	let section;
-	$: frame = live ? null : { light: netImage(g, 'light', lit), dark: netImage(g, 'dark', lit) };
+	$: frame = live ? null : (() => { const gf = globe({ lat, lon, lit, minTerrDeg: FRAME_MIN_TERR_DEG }); return { light: netImage(gf, 'light'), dark: netImage(gf, 'dark') }; })();
 
-	$: g = globe({ lat, lon, step: STEP, lit });
+	$: g = globe({ lat, lon, lit });
 	$: node = nodeByCode(lit);
-	$: dot = node ? g.nodes.find((n) => n.code === lit) : undefined;
+	$: dot = g.litDot;
 	$: anchor = dot && dot.front ? dot : { x: CX, y: CY };
 	$: label = node
-		? `The Net: a wire globe with ${NODES.length} network nodes. ${node.city} answered you; it is lit.`
-		: `The Net: a wire globe with ${NODES.length} network nodes.`;
+		? `The Net: a globe of the network's branches, ${COUNTS.hubs} hubs and ${COUNTS.links} links. ${node.city} answered you; it is lit.`
+		: `The Net: a globe of the network's branches, ${COUNTS.hubs} hubs and ${COUNTS.links} links.`;
+	const desc = `Hub and branch data from TeleGeography's Submarine Cable Map (2021 snapshot) and the Internet Topology Zoo, ${LICENSE}; credits at ${CREDITS}.`;
 	$: href = poem ? `/poems/${poem}` : '/poems';
 
 	function recenter() {
@@ -89,17 +92,27 @@
 		size = svg.clientWidth || 1;
 		svg.setPointerCapture(e.pointerId);
 	}
+	let raf = 0;
+	let ax = 0;
+	let ay = 0;
 	/** @param {PointerEvent} e */
 	function move(e) {
 		if (!dragging) return;
-		const dx = e.clientX - px;
-		const dy = e.clientY - py;
+		ax += e.clientX - px;
+		ay += e.clientY - py;
 		px = e.clientX;
 		py = e.clientY;
-		if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+		if (Math.abs(ax) + Math.abs(ay) > 2) moved = true;
+		if (!raf) raf = requestAnimationFrame(turn);
+	}
+	/** one turn per frame, however many pointer events arrived */
+	function turn() {
+		raf = 0;
 		const k = 180 / size; // a drag across the globe turns it half way round
-		lon = ((lon - dx * k + 540) % 360) - 180;
-		lat = Math.max(-85, Math.min(85, lat + dy * k));
+		lon = ((lon - ax * k + 540) % 360) - 180;
+		lat = Math.max(-85, Math.min(85, lat + ay * k));
+		ax = 0;
+		ay = 0;
 	}
 	/** @param {PointerEvent} e */
 	function up(e) {
@@ -121,7 +134,7 @@
 	}
 </script>
 
-<section class="net" class:revealed data-lit={lit || ''} bind:this={section}>
+<section class="net" class:revealed data-lit={lit || ''} data-license={LICENSE} bind:this={section}>
 	{#if frame}
 		<img class="frame light" src={frame.light} width={SIZE} height={SIZE} alt={label} />
 		<img class="frame dark" src={frame.dark} width={SIZE} height={SIZE} alt={label} />
@@ -138,17 +151,22 @@
 		on:pointerup={up}
 		on:pointercancel={up}
 	>
+		<desc>{desc}</desc>
 			<circle class="limb" cx={CX} cy={CY} r={R} />
-			<path class="back" d={g.back} />
+			<path class="hubs back" d={g.hubs.back} />
+			<path class="arc terr" d={g.arcs.terr} />
+			<path class="arc tether" d={g.arcs.tether} />
+			<path class="arc sub1" d={g.arcs.sub1} />
+			<path class="arc sub2" d={g.arcs.sub2} />
+			<path class="arc sub3" d={g.arcs.sub3} />
 			<g class="glow">
-				{#if g.cells}<path class="cells" d={g.cells} />{/if}
-				{#if dot && dot.front}<circle class="halo" cx={dot.x} cy={dot.y} r="28" />{/if}
+				<path class="half" d={g.glow.half} />
+				<path class="full" d={g.glow.full} />
+				<path class="hubs region" d={g.hubs.region} />
+				{#if dot && dot.front}<circle class="halo" cx={dot.x} cy={dot.y} r="26" />{/if}
 			</g>
-			<path class="front" d={g.front} />
-			<path class="dots" d={g.dots} />
-			{#each g.nodes as n (n.code)}
-				{#if n.code !== lit}<circle class="node" class:behind={!n.front} cx={n.x} cy={n.y} r="5" />{/if}
-			{/each}
+			<path class="hubs front" d={g.hubs.front} />
+			<path class="regions" d={g.regions} />
 			{#if dot && dot.front}<circle class="lit" cx={dot.x} cy={dot.y} r="8" />{/if}
 	</svg>
 	{/if}
@@ -197,42 +215,77 @@
 		stroke-opacity: 0.3;
 		stroke-width: 1.5;
 	}
-	.back {
+	/* branches, by weight: one cable, a few, many; backbone hops thinner; the
+	   schematic links to a region dotted. Same numbers as globe.js's STROKES. */
+	.arc {
 		fill: none;
 		stroke: var(--ink);
-		stroke-opacity: 0.09;
-		stroke-width: 1;
-	}
-	.front {
-		fill: none;
-		stroke: var(--ink);
-		stroke-opacity: 0.38;
-		stroke-width: 1.2;
-	}
-	.dots {
-		fill: none;
-		stroke: var(--ink);
-		stroke-opacity: 0.55;
-		stroke-width: 4;
 		stroke-linecap: round;
 	}
-	.node {
-		fill: var(--ink);
-		fill-opacity: 0.8;
-	}
-	.node.behind {
-		fill-opacity: 0.12;
-	}
-	.cells {
-		fill: var(--accent);
-		fill-opacity: 0.3;
-		stroke: var(--accent);
+	.arc.sub1 {
+		stroke-width: 1.2;
 		stroke-opacity: 0.3;
-		stroke-width: 0.6; /* closes the hairline seams between cells */
+	}
+	.arc.sub2 {
+		stroke-width: 1.8;
+		stroke-opacity: 0.45;
+	}
+	.arc.sub3 {
+		stroke-width: 2.6;
+		stroke-opacity: 0.6;
+	}
+	.arc.terr {
+		stroke-width: 0.9;
+		stroke-opacity: 0.2;
+	}
+	.arc.tether {
+		stroke-width: 1;
+		stroke-opacity: 0.3;
+		stroke-dasharray: 6 6;
+	}
+	.hubs {
+		fill: none;
+		stroke: var(--ink);
+		stroke-linecap: round;
+	}
+	.hubs.front {
+		stroke-width: 3.5;
+		stroke-opacity: 0.65;
+	}
+	.hubs.back {
+		stroke-width: 3;
+		stroke-opacity: 0.1;
+	}
+	.regions {
+		fill: none;
+		stroke: var(--ink);
+		stroke-linecap: round;
+		stroke-width: 7;
+		stroke-opacity: 0.85;
+	}
+	/* the answering region: its hubs and branches in the accent */
+	.glow .half {
+		fill: none;
+		stroke: var(--accent);
+		stroke-width: 1.6;
+		stroke-opacity: 0.6;
+		stroke-linecap: round;
+	}
+	.glow .full {
+		fill: none;
+		stroke: var(--accent-strong);
+		stroke-width: 2.2;
+		stroke-opacity: 0.85;
+		stroke-linecap: round;
+	}
+	.glow .hubs.region {
+		stroke: var(--accent-strong);
+		stroke-width: 4.5;
+		stroke-opacity: 0.9;
 	}
 	.halo {
 		fill: var(--accent);
-		fill-opacity: 0.55;
+		fill-opacity: 0.5;
 	}
 	.lit {
 		fill: var(--accent-strong);

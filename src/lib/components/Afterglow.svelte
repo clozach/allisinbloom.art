@@ -234,6 +234,7 @@
 </div>
 {#if phase !== 'reading'}
 	<PoemNav />
+	<p class="credits"><a href="/credits">credits</a></p>
 {/if}
 
 {#if phase === 'open'}
@@ -330,6 +331,18 @@
 		display: block;
 		width: 100%;
 		height: 100%;
+	}
+	.credits {
+		max-width: 800px;
+		margin: 1.5rem auto 0;
+		padding: 0 1.25rem;
+		text-align: center;
+		font-size: 0.7em;
+		font-style: italic;
+		opacity: 0.7;
+	}
+	.credits a::after {
+		content: none;
 	}
 	.visually-hidden {
 		position: absolute;

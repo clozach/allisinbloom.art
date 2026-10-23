@@ -18,11 +18,12 @@ test.describe('The Net', () => {
     const response = await page.goto('/?node=sfo1', { waitUntil: 'networkidle' });
     expect(response?.status()).toBe(200);
     expect(new URL(page.url()).pathname).toBe('/');
-    const globe = page.getByRole('img', { name: /The Net: a wire globe/ });
+    const globe = page.getByRole('img', { name: /The Net: a globe of the network's branches/ });
     await expect(globe).toBeVisible();
-    await expect(globe).toHaveAccessibleName(/San Francisco answered you; it is lit/);
-    await expect(page.locator('.net .cells')).toHaveCount(1);
+    await expect(globe).toHaveAccessibleName(/globe of the network's branches, \d+ hubs and \d+ links\. San Francisco answered you; it is lit/);
+    await expect(page.locator('.net .glow .full')).toHaveAttribute('d', /^M/);
     await expect(page.locator('.net .lit')).toHaveCount(1);
+    await expect(page.locator('.net')).toHaveAttribute('data-license', /creativecommons/);
     const ask = page.getByRole('link', { name: 'Poem?' });
     const slug = (await ask.getAttribute('href'))?.match(/^\/poems\/([^/]+)$/)?.[1];
     expect(AVAILABLE).toContain(slug);
@@ -48,7 +49,7 @@ test.describe('The Net', () => {
 
   test('the arrow keys turn the Earth from the offer; Home brings the lit node back; Enter opens the poem', async ({ page }) => {
     await page.goto('/?node=hnd1', { waitUntil: 'networkidle' });
-    const front = page.locator('.net .front');
+    const front = page.locator('.net .hubs.front');
     const before = await front.getAttribute('d');
     const litBefore = await page.locator('.net .lit').getAttribute('cx');
     await page.keyboard.press('Tab');
@@ -64,7 +65,7 @@ test.describe('The Net', () => {
 
   test('a drag turns the Earth; a tap reveals the offer', async ({ page }) => {
     await page.goto('/?node=gru1', { waitUntil: 'networkidle' });
-    const front = page.locator('.net .front');
+    const front = page.locator('.net .hubs.front');
     const before = await front.getAttribute('d');
     const box = await page.locator('.net svg').boundingBox();
     if (!box) throw new Error('no globe');
@@ -121,7 +122,8 @@ test.describe('The Net', () => {
     const warnings: string[] = [];
     page.on('console', (m) => { if (m.type() === 'warning' || m.type() === 'error') warnings.push(m.text()); });
     await page.goto('/?node=syd1', { waitUntil: 'networkidle' });
-    await expect(page.locator('.net path.front')).toHaveCount(1);
+    await expect(page.locator('.net path.hubs.front')).toHaveCount(1);
+    await expect(page.locator('.net path.arc')).toHaveCount(5);
     await expect(page.locator('.net img.frame')).toHaveCount(0);
     expect(warnings.filter((w) => /hydration/i.test(w))).toEqual([]);
     await ctx.close();

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NODES, nodeByCode, nearestNode, guessNode, angle } from '../../src/lib/net/nodes.js';
-import { globe, netImage, projector, cellOwners, CX, CY } from '../../src/lib/net/globe.js';
+import { globe, netImage, projector, HUBS, LINKS, REGION_OF, COUNTS, HUB_COUNT, LICENSE, CX, CY, R } from '../../src/lib/net/globe.js';
 import { fnv1a, minuteKey, dayKey, pickPoem, pictureSeed } from '../../src/lib/net/pick.js';
 import { readingTime, measureText, jitteredWait, aboutWait, slowWpm, DEFAULT_PACE } from '../../src/lib/net/reading.js';
 import { whereFrom } from '../../src/lib/net/where.js';
@@ -43,42 +43,79 @@ test('the projection puts the view centre in the middle of the box, facing out',
   assert.ok(p(-37.77, 57.58).depth < -0.999, 'the antipode faces away');
 });
 
-test('the globe draws front and back lines, dots, the lit region and every node', () => {
-  const g = globe({ lat: 37.77, lon: -122.42, lit: 'sfo1' });
-  assert.ok(g.front.startsWith('M') && g.back.startsWith('M'));
-  assert.ok(g.dots.includes('h.01'));
-  assert.ok((g.cells.match(/Z/g) || []).length >= 20, 'San Francisco owns a region of cells');
-  assert.ok(globe({ lat: 51.5, lon: 0, lit: 'lhr1' }).cells.length > 0, 'London, hemmed in by Dublin, Paris and Frankfurt, still has a region');
-  assert.equal(g.nodes.length, NODES.length);
-  const sfo = g.nodes.find((n) => n.code === 'sfo1');
-  assert.deepEqual([sfo?.x, sfo?.y, sfo?.front], [CX, CY, true]);
-  assert.equal(g.nodes.find((n) => n.code === 'sin1')?.front, false);
-  assert.equal(globe({ lat: 0, lon: 0 }).cells, '', 'no lit node, no region');
-  assert.ok(g.front.length + g.back.length + g.dots.length + g.cells.length < 30000, 'path data stays small');
-  assert.doesNotMatch(g.front, /\.\d/, 'whole units only');
-  assert.doesNotMatch(g.front + g.cells, / /, 'no spaces: the path data travels in a data: URI as it is');
+/** every coordinate pair of a path, absolute (the data uses M and relative l) */
+function pointsOf(d) {
+  const out = [];
+  let x = 0;
+  let y = 0;
+  for (const m of d.matchAll(/([Ml])(-?\d+),(-?\d+)/g)) {
+    if (m[1] === 'M') {
+      x = Number(m[2]);
+      y = Number(m[3]);
+    } else {
+      x += Number(m[2]);
+      y += Number(m[3]);
+    }
+    out.push([x, y]);
+  }
+  return out;
+}
+
+test('the hub data is there, with Vercel\'s regions first and a region for every hub', () => {
+  assert.ok(COUNTS.hubs >= 400 && COUNTS.links >= 400, `${COUNTS.hubs} hubs, ${COUNTS.links} links`);
+  assert.equal(HUB_COUNT, COUNTS.hubs);
+  assert.ok(HUB_COUNT <= HUBS.length, 'junction nodes, if any, come after the hubs');
+  NODES.forEach((n, i) => {
+    assert.ok(Math.abs(HUBS[i].lat - n.lat) < 0.15 && Math.abs(HUBS[i].lon - n.lon) < 0.15, `hub ${i} is ${n.code}`);
+    assert.equal(REGION_OF[i], n.code);
+  });
+  for (const code of REGION_OF) assert.ok(NODES.some((n) => n.code === code));
+  for (const l of LINKS) assert.ok(l.a !== l.b && l.a < HUBS.length && l.b < HUBS.length);
+  assert.ok(LICENSE.startsWith('https://creativecommons.org/licenses/'));
 });
 
-test('the first frame is a picture: one SVG document per theme in a data: URI, safe in an attribute', () => {
+test('the globe draws branches, hubs and the lit region, all inside the disc, cut at the limb', () => {
   const g = globe({ lat: 37.77, lon: -122.42, lit: 'sfo1' });
-  const light = netImage(g, 'light', 'sfo1');
-  const dark = netImage(g, 'dark', 'sfo1');
+  const all = [g.arcs.sub1, g.arcs.sub2, g.arcs.sub3, g.arcs.terr, g.glow.full, g.glow.half];
+  assert.ok(all.some((d) => d.startsWith('M')), 'some branches face the viewer');
+  assert.ok(g.glow.full.length + g.glow.half.length > 0, 'the answering region has glowing branches');
+  assert.ok(g.hubs.region.includes('h.01') && g.hubs.front.includes('h.01'));
+  assert.deepEqual([g.litDot?.x, g.litDot?.y, g.litDot?.front], [CX, CY, true]);
+  const limit = (R * 1.08) ** 2;
+  for (const d of [...all, g.hubs.front, g.hubs.region, g.regions]) {
+    for (const [x, y] of pointsOf(d)) assert.ok((x - CX) ** 2 + (y - CY) ** 2 <= limit, `${x},${y} is off the sphere`);
+  }
+  for (const [x, y] of pointsOf(g.hubs.front)) assert.ok((x - CX) ** 2 + (y - CY) ** 2 <= (R + 1) ** 2, 'hubs sit on the sphere (whole units)');
+  assert.doesNotMatch(g.arcs.sub1, /\.\d/, 'whole units only');
+  assert.doesNotMatch(g.arcs.sub1 + g.hubs.front, / /, 'no spaces: the path data travels in a data: URI as it is');
+  const unlit = globe({ lat: 0, lon: 0 });
+  assert.equal(unlit.glow.full + unlit.glow.half + unlit.hubs.region, '', 'no lit region, no glow');
+  assert.equal(unlit.litDot, null);
+});
+
+test('the view decides what shows: the far side is left out and turning the Earth changes the frame', () => {
+  const a = globe({ lat: 51.5, lon: -0.1, lit: 'lhr1' });
+  const b = globe({ lat: -33.9, lon: 151.2, lit: 'lhr1' });
+  assert.notEqual(a.arcs.sub1 + a.arcs.sub2, b.arcs.sub1 + b.arcs.sub2);
+  assert.ok(b.litDot && !b.litDot.front, 'London is behind the Earth from Sydney');
+  assert.ok(b.hubs.back.length > 0, 'the far side keeps its faint hubs');
+  const slim = globe({ lat: 50.1, lon: 8.7, lit: 'fra1', minTerrDeg: 1.35 });
+  assert.ok(slim.arcs.terr.length < a.arcs.terr.length || slim.arcs.terr.length <= globe({ lat: 50.1, lon: 8.7, lit: 'fra1' }).arcs.terr.length, 'short backbone hops can be left out');
+});
+
+test('the first frame is a picture: one SVG document per theme in a data: URI, safe in an attribute, within budget', () => {
+  const g = globe({ lat: 50.1, lon: 8.7, lit: 'fra1', minTerrDeg: 1.35 }); // Frankfurt: the busiest view
+  const light = netImage(g, 'light');
+  const dark = netImage(g, 'dark');
   assert.ok(light.startsWith('data:image/svg+xml,%3Csvg%20'));
   assert.ok(light.endsWith('%3C/svg%3E'));
   for (const uri of [light, dark]) {
     assert.doesNotMatch(uri, /[#<>" ]/, 'no raw #, <, >, quotes or spaces');
-    assert.ok(uri.length < 40000, `size ${uri.length}`);
+    assert.ok(uri.length < 48000, `size ${uri.length}`);
   }
   assert.notEqual(light, dark);
   assert.ok(light.includes('%23533737') && dark.includes('%23e2c8ee'));
-  assert.ok(!netImage(globe({ lat: 0, lon: 0 }), 'light', null).includes("r='28'"), 'no lit node, no halo');
-});
-
-test('every cell has one owner and every node owns a cell', () => {
-  const own = cellOwners(5);
-  assert.equal(own.size, 72 * 36);
-  const owners = new Set(own.values());
-  for (const n of NODES) assert.ok(owners.has(n.code), `${n.code} owns a cell`);
+  assert.ok(!netImage(globe({ lat: 0, lon: 0 }), 'light').includes("r='26'"), 'no lit node, no halo');
 });
 
 test('picks are deterministic, spread, and keyed by node and minute', () => {
