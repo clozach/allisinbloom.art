@@ -107,10 +107,10 @@ test.describe('The Net', () => {
     const page = await ctx.newPage();
     await page.goto('/?node=syd1');
     await expect(page.getByRole('img', { name: /Sydney answered you/ })).toBeVisible();
-    await expect(page.locator('.net image.frame.light')).toHaveAttribute('href', /^data:image\/svg\+xml,/);
-    await expect(page.locator('.net image.frame.light')).toBeVisible();
-    await expect(page.locator('.net image.frame.dark')).toBeHidden();
-    await expect(page.locator('.net path.front')).toHaveCount(0);
+    await expect(page.locator('.net img.frame.light')).toHaveAttribute('src', /^data:image\/svg\+xml,/);
+    await expect(page.locator('.net img.frame.light')).toBeVisible();
+    await expect(page.locator('.net img.frame.dark')).toBeHidden();
+    await expect(page.locator('.net svg')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Poem?' })).toHaveAttribute('href', /^\/poems\//);
     await ctx.close();
   });
@@ -122,7 +122,7 @@ test.describe('The Net', () => {
     page.on('console', (m) => { if (m.type() === 'warning' || m.type() === 'error') warnings.push(m.text()); });
     await page.goto('/?node=syd1', { waitUntil: 'networkidle' });
     await expect(page.locator('.net path.front')).toHaveCount(1);
-    await expect(page.locator('.net image.frame')).toHaveCount(0);
+    await expect(page.locator('.net img.frame')).toHaveCount(0);
     expect(warnings.filter((w) => /hydration/i.test(w))).toEqual([]);
     await ctx.close();
   });

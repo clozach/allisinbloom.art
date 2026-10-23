@@ -148,10 +148,11 @@ export function globe({ lat, lon, step = 15, cell = 5, lit = null }) {
 }
 
 // The first frame as a picture. An inline SVG's shapes are not a "largest contentful
-// paint" for the browser, so a page that is only the globe has no paint to measure and
-// Lighthouse gives it no performance score. The server therefore draws the frame once
-// more as a data: image inside the SVG, which is a paint, and the live paths take its
-// place on hydration. Colours are the page's theme tokens (src/routes/+layout.svelte).
+// paint" for the browser (nor is an <image> inside one), so a page that is only the
+// globe has no paint to measure and Lighthouse gives it no performance score. The
+// server therefore draws the frame once more as a data: image for an <img>, which is a
+// paint, and the live SVG takes its place on hydration. Colours are the page's theme
+// tokens (src/routes/+layout.svelte).
 const THEMES = {
   light: { ink: '#533737', accent: '#caa8d6', strong: '#b077c5' },
   dark: { ink: hslToHex(9, 0.25, 0.86), accent: '#d3b3e0', strong: '#e2c8ee' }
@@ -182,5 +183,5 @@ export function netImage(g, theme, lit) {
     nodes +
     litDot +
     '</svg>';
-  return 'data:image/svg+xml,' + svg.replace(/%/g, '%25').replace(/#/g, '%23').replace(/</g, '%3C').replace(/>/g, '%3E');
+  return 'data:image/svg+xml,' + svg.replace(/%/g, '%25').replace(/#/g, '%23').replace(/</g, '%3C').replace(/>/g, '%3E').replace(/ /g, '%20');
 }

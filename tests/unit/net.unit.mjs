@@ -63,10 +63,10 @@ test('the first frame is a picture: one SVG document per theme in a data: URI, s
   const g = globe({ lat: 37.77, lon: -122.42, lit: 'sfo1' });
   const light = netImage(g, 'light', 'sfo1');
   const dark = netImage(g, 'dark', 'sfo1');
-  assert.ok(light.startsWith('data:image/svg+xml,%3Csvg '));
+  assert.ok(light.startsWith('data:image/svg+xml,%3Csvg%20'));
   assert.ok(light.endsWith('%3C/svg%3E'));
   for (const uri of [light, dark]) {
-    assert.doesNotMatch(uri, /[#<>"]/, 'no raw #, <, > or quotes');
+    assert.doesNotMatch(uri, /[#<>" ]/, 'no raw #, <, >, quotes or spaces');
     assert.ok(uri.length < 40000, `size ${uri.length}`);
   }
   assert.notEqual(light, dark);

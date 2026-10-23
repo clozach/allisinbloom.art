@@ -23,8 +23,8 @@
 	let lat = start?.lat ?? 20;
 	let lon = start?.lon ?? 0;
 	let revealed = false;
-	// The server's frame is a picture inside the SVG (the page's one paint, for the
-	// browser's own metrics); the live paths take its place once the page is running.
+	// The server's frame is a picture, an <img> per theme (the page's one paint, for
+	// the browser's own metrics); the live SVG takes its place once the page is running.
 	let live = false;
 	$: frame = live ? null : { light: netImage(g, 'light', lit), dark: netImage(g, 'dark', lit) };
 
@@ -108,6 +108,10 @@
 </script>
 
 <section class="net" class:revealed data-lit={lit || ''}>
+	{#if frame}
+		<img class="frame light" src={frame.light} width={SIZE} height={SIZE} alt={label} />
+		<img class="frame dark" src={frame.dark} width={SIZE} height={SIZE} alt={label} />
+	{:else}
 	<!-- the drag is a pointer extra; the keyboard turns the Earth from the link below -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<svg
@@ -120,10 +124,6 @@
 		on:pointerup={up}
 		on:pointercancel={up}
 	>
-		{#if frame}
-			<image class="frame light" href={frame.light} width={SIZE} height={SIZE} />
-			<image class="frame dark" href={frame.dark} width={SIZE} height={SIZE} />
-		{:else}
 			<circle class="limb" cx={CX} cy={CY} r={R} />
 			<path class="back" d={g.back} />
 			<g class="glow">
@@ -136,8 +136,8 @@
 				{#if n.code !== lit}<circle class="node" class:behind={!n.front} cx={n.x} cy={n.y} r="5" />{/if}
 			{/each}
 			{#if dot && dot.front}<circle class="lit" cx={dot.x} cy={dot.y} r="8" />{/if}
-		{/if}
 	</svg>
+	{/if}
 	<a class="ask" {href} style="left:{anchor.x / 10}%;top:{anchor.y / 10}%" on:keydown={key}>Poem?</a>
 </section>
 
@@ -161,6 +161,11 @@
 		cursor: grabbing;
 	}
 	/* the server's frame: one picture per theme, the other kept out of the paint */
+	.frame {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
 	.frame.dark {
 		display: none;
 	}
@@ -169,7 +174,7 @@
 			display: none;
 		}
 		.frame.dark {
-			display: inline;
+			display: block;
 		}
 	}
 	.limb {
