@@ -79,6 +79,20 @@ test.describe('Afterglow', () => {
     expect(box.height).toBeGreaterThanOrEqual(vp.height - 1);
     await expect(dialog).toHaveAccessibleDescription(/\d{4}\. .+/);
     expect(await dialog.locator('button').count()).toBe(0); // no dismiss button
+    // the bloom really draws: more than one colour on the canvas
+    const colours = await dialog.locator('canvas').evaluate((c) => {
+      const canvas = c as HTMLCanvasElement;
+      const o = document.createElement('canvas');
+      o.width = 64;
+      o.height = 48;
+      const g = o.getContext('2d')!;
+      g.drawImage(canvas, 0, 0, 64, 48);
+      const d = g.getImageData(0, 0, 64, 48).data;
+      const seen = new Set<string>();
+      for (let i = 0; i < d.length; i += 4) seen.add(`${d[i] >> 4},${d[i + 1] >> 4},${d[i + 2] >> 4}`);
+      return seen.size;
+    });
+    expect(colours).toBeGreaterThan(3);
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await expect(thumb).toBeFocused();

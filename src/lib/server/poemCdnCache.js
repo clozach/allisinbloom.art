@@ -18,6 +18,11 @@
 
 export const POEM_CDN_CACHE = { 'vercel-cdn-cache-control': 'max-age=31536000' };
 
+// The Net at /: cached per region for a minute, since its offer is a function of the
+// region and the minute; stale copies serve for ten minutes more while one refreshes,
+// so a visitor rarely waits for the function to wake. Production only (the load checks).
+export const NET_CDN_CACHE = { 'vercel-cdn-cache-control': 'max-age=60, stale-while-revalidate=600' };
+
 /**
  * @param {string|null} slug the poem slug from /poems/<slug>, or null for any other page
  * @param {{environment?: string, editMode: 'local'|'preview'|null, published: string[], drafts?: string[]}} options

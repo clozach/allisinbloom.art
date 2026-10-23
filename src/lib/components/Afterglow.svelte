@@ -133,11 +133,15 @@
 	 * @param {HTMLCanvasElement} canvas @param {{ width: number, height: number }} size
 	 */
 	function still(canvas, size) {
+		let drawn = '';
 		const draw = () => {
 			if (!tune) return;
 			dark = isDark();
-			description = describePicture(tune, node, dayKey(new Date()), dark);
 			const dpr = Math.min(window.devicePixelRatio || 1, 2);
+			const key = `${size.width}x${size.height}@${dpr}${dark ? 'd' : 'l'}`;
+			if (key === drawn) return;
+			drawn = key;
+			description = describePicture(tune, node, dayKey(new Date()), dark);
 			canvasOk = renderBloomStill(canvas, tune, { dark, width: size.width, height: size.height, pixelRatio: dpr });
 		};
 		draw();
@@ -235,7 +239,15 @@
 {#if phase === 'open'}
 	<!-- the picture fills the viewport; a click anywhere or Escape lets it go -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<dialog class="picture" use:modal on:cancel|preventDefault={close} on:click={close} aria-labelledby="afterglow-title" aria-describedby="afterglow-picture-full">
+	<dialog
+		class="picture"
+		use:modal
+		on:cancel|preventDefault={close}
+		on:click={close}
+		aria-labelledby="afterglow-title"
+		aria-describedby="afterglow-picture-full"
+		style={tune ? `--fallback:${dark ? tune.darkLaceB : tune.lightLaceB}` : ''}
+	>
 		<figure>
 			<canvas use:still={{ width: vw, height: vh }}></canvas>
 			<figcaption>
@@ -301,6 +313,10 @@
 		background: var(--bg);
 		cursor: zoom-out;
 	}
+	.picture:focus,
+	.picture:focus-visible {
+		outline: none; /* the whole viewport is the picture; a ring around it marks nothing */
+	}
 	.picture::backdrop {
 		background: transparent;
 	}
@@ -308,6 +324,7 @@
 		margin: 0;
 		width: 100%;
 		height: 100%;
+		background: var(--fallback, var(--bg)); /* a browser without WebGL gets the lace colour */
 	}
 	.picture canvas {
 		display: block;

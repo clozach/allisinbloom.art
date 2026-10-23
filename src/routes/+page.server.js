@@ -7,14 +7,13 @@ import { env } from '$env/dynamic/private';
 import { drafts } from '$lib/server/poemDrafts.js';
 import { whereFrom } from '$lib/net/where.js';
 import { pickPoem, minuteKey } from '$lib/net/pick.js';
+import { NET_CDN_CACHE } from '$lib/server/poemCdnCache.js';
 import routeText from '../../static/route.txt?raw';
 
 const published = routeText
 	.split('\n')
 	.map((route) => route.trim())
 	.filter(Boolean);
-
-export const NET_CDN_CACHE = { 'vercel-cdn-cache-control': 'max-age=60, stale-while-revalidate=600' };
 
 /** @type {import('./$types').PageServerLoad} */
 export function load(event) {
