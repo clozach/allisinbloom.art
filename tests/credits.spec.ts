@@ -18,6 +18,23 @@ test.describe('Credits', () => {
     await expect(page.locator('a[href^="https://creativecommons.org/licenses/by-nc-sa/3.0"]').first()).toBeVisible();
     await expect(page.locator('a[href^="https://creativecommons.org/licenses/by/4.0"]').first()).toBeVisible();
     await expect(page.getByRole('link', { name: 'The Net' })).toHaveAttribute('href', '/');
+    // rel=license names a licence, nothing else
+    expect(await page.locator('a[rel~="license"]:not([href^="https://creativecommons.org/licenses/"])').count()).toBe(0);
+    expect(await page.locator('a[rel~="license"]').count()).toBeGreaterThan(0);
+  });
+
+  test('without JavaScript the Net still carries its credit, and the poem page links to it', async ({ browser }) => {
+    const ctx = await browser.newContext({ javaScriptEnabled: false });
+    const page = await ctx.newPage();
+    await page.goto('/?node=lhr1');
+    const credit = page.locator('#net-credits');
+    await expect(credit).toContainText(/TeleGeography/);
+    await expect(credit).toContainText(/creativecommons/);
+    await expect(credit.getByRole('link', { name: 'Credits' })).toHaveAttribute('href', '/credits');
+    await expect(page.locator('.net img.frame.light')).toHaveAttribute('aria-describedby', 'net-credits');
+    await page.goto(`/poems/${ROUTES[0]}`);
+    await expect(page.getByRole('link', { name: 'credits' })).toHaveAttribute('href', '/credits');
+    await ctx.close();
   });
 
   test('a poem page leads to the credits once it offers its nav; the Net carries the licence in its description', async ({ page }) => {

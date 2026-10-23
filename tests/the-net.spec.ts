@@ -27,8 +27,8 @@ test.describe('The Net', () => {
     const ask = page.getByRole('link', { name: 'Poem?' });
     const slug = (await ask.getAttribute('href'))?.match(/^\/poems\/([^/]+)$/)?.[1];
     expect(AVAILABLE).toContain(slug);
-    // nothing else on the page is interactive
-    expect(await page.locator('main a, main button').count()).toBe(1);
+    // nothing else on the page is interactive: the credit's link is out of the Tab order
+    expect(await page.locator('main a:not([tabindex="-1"]), main button').count()).toBe(1);
   });
 
   test('the offer is hidden until the Earth is hovered or the offer is focused', async ({ page }) => {
@@ -76,6 +76,12 @@ test.describe('The Net', () => {
     await page.mouse.move(cx + 120, cy + 30, { steps: 6 });
     await page.mouse.up();
     expect(await front.getAttribute('d')).not.toBe(before);
+    await expect(page.locator('.net')).not.toHaveClass(/revealed/);
+    // a slow drag is still a drag: one pixel per step, forty steps
+    await page.mouse.move(cx, cy + 40);
+    await page.mouse.down();
+    await page.mouse.move(cx + 40, cy + 40, { steps: 40 });
+    await page.mouse.up();
     await expect(page.locator('.net')).not.toHaveClass(/revealed/);
     // a still tap (no movement) counts as a touch and reveals the offer
     await page.mouse.move(cx - 60, cy - 60);

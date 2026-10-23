@@ -2,6 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NODES, nodeByCode, nearestNode, guessNode, angle } from '../../src/lib/net/nodes.js';
 import { globe, netImage, projector, HUBS, LINKS, REGION_OF, COUNTS, HUB_COUNT, LICENSE, CX, CY, R } from '../../src/lib/net/globe.js';
+
+/** the server's frames, as TheNet renders them: each region's own view, lit, and an unlit default */
+const SERVER_VIEWS = [{ lat: 20, lon: 0, lit: null }, ...NODES.map((n) => ({ lat: n.lat, lon: n.lon, lit: n.code }))];
+const FRAME_MIN_TERR_DEG = 1.35;
 import { fnv1a, minuteKey, dayKey, pickPoem, pictureSeed } from '../../src/lib/net/pick.js';
 import { readingTime, measureText, jitteredWait, aboutWait, slowWpm, DEFAULT_PACE } from '../../src/lib/net/reading.js';
 import { whereFrom } from '../../src/lib/net/where.js';
@@ -99,20 +103,56 @@ test('the view decides what shows: the far side is left out and turning the Eart
   assert.notEqual(a.arcs.sub1 + a.arcs.sub2, b.arcs.sub1 + b.arcs.sub2);
   assert.ok(b.litDot && !b.litDot.front, 'London is behind the Earth from Sydney');
   assert.ok(b.hubs.back.length > 0, 'the far side keeps its faint hubs');
-  const slim = globe({ lat: 50.1, lon: 8.7, lit: 'fra1', minTerrDeg: 1.35 });
-  assert.ok(slim.arcs.terr.length < a.arcs.terr.length || slim.arcs.terr.length <= globe({ lat: 50.1, lon: 8.7, lit: 'fra1' }).arcs.terr.length, 'short backbone hops can be left out');
+  assert.ok(b.hubs.back.includes(`M${b.litDot?.x},${b.litDot?.y}h.01`), 'a lit hub on the far side keeps its faint dot too');
+  const full = globe({ lat: 50.1, lon: 8.7, lit: 'fra1' });
+  const slim = globe({ lat: 50.1, lon: 8.7, lit: 'fra1', minTerrDeg: FRAME_MIN_TERR_DEG });
+  assert.ok(slim.arcs.terr.length < full.arcs.terr.length, 'the frame leaves short backbone hops out');
+  assert.equal(slim.glow.full + slim.glow.half, full.glow.full + full.glow.half, 'but never the lit region\'s own branches');
 });
 
-test('the first frame is a picture: one SVG document per theme in a data: URI, safe in an attribute, within budget', () => {
-  const g = globe({ lat: 50.1, lon: 8.7, lit: 'fra1', minTerrDeg: 1.35 }); // Frankfurt: the busiest view
+test('every run of a branch ends at a hub or at the limb, and only hubs get dots', () => {
+  const view = { lat: 37.77, lon: -122.42, lit: 'sfo1' };
+  const g = globe(view);
+  const proj = projector(view.lat, view.lon);
+  const at = new Set(HUBS.map((h) => { const q = proj(h.lat, h.lon); return `${Math.round(q.x)},${Math.round(q.y)}`; }));
+  let runs = 0;
+  let offLimb = 0;
+  for (const d of [g.arcs.sub1, g.arcs.sub2, g.arcs.sub3, g.arcs.terr, g.glow.full, g.glow.half]) {
+    for (const run of d.split('M').filter(Boolean)) {
+      const pts = pointsOf('M' + run);
+      runs++;
+      for (const end of [pts[0], pts[pts.length - 1]]) {
+        if (at.has(`${end[0]},${end[1]}`)) continue; // a hub, possibly lifted by a hair
+        const r = Math.hypot(end[0] - CX, end[1] - CY);
+        if (Math.abs(r - R) > 3) offLimb++;
+      }
+    }
+  }
+  assert.ok(runs > 200, `${runs} runs`);
+  assert.equal(offLimb, 0, 'a run that does not end at a hub ends on the limb, within 3 units');
+  const dots = (d) => (d.match(/h\.01/g) || []).length;
+  const drawn = dots(g.hubs.front) + dots(g.hubs.back) + dots(g.hubs.region) + dots(g.regions) + (g.litDot ? 1 : 0);
+  assert.equal(drawn, HUB_COUNT, 'every hub has a dot, junctions have none');
+  assert.ok(HUBS.length > HUB_COUNT, 'there are junction nodes');
+});
+
+test('the first frame is a picture: one SVG document per theme in a data: URI, safe in an attribute, within budget on every view', () => {
+  const g = globe({ lat: 50.1, lon: 8.7, lit: 'fra1', minTerrDeg: FRAME_MIN_TERR_DEG });
   const light = netImage(g, 'light');
   const dark = netImage(g, 'dark');
   assert.ok(light.startsWith('data:image/svg+xml,%3Csvg%20'));
   assert.ok(light.endsWith('%3C/svg%3E'));
-  for (const uri of [light, dark]) {
-    assert.doesNotMatch(uri, /[#<>" ]/, 'no raw #, <, >, quotes or spaces');
-    assert.ok(uri.length < 48000, `size ${uri.length}`);
+  for (const uri of [light, dark]) assert.doesNotMatch(uri, /[#<>" ]/, 'no raw #, <, >, quotes or spaces');
+  let worst = 0;
+  let where = '';
+  for (const v of SERVER_VIEWS) {
+    const size = netImage(globe({ ...v, minTerrDeg: FRAME_MIN_TERR_DEG }), 'dark').length;
+    if (size > worst) {
+      worst = size;
+      where = v.lit || 'unlit';
+    }
   }
+  assert.ok(worst < 48000, `the busiest server frame (${where}) is ${worst} bytes`);
   assert.notEqual(light, dark);
   assert.ok(light.includes('%23533737') && dark.includes('%23e2c8ee'));
   assert.ok(!netImage(globe({ lat: 0, lon: 0 }), 'light').includes("r='26'"), 'no lit node, no halo');

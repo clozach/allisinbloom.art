@@ -121,8 +121,8 @@ export function projector(centerLat, centerLon) {
 function arcPath(B, pts) {
   const count = pts.length / 3;
   let out = '';
-  /** @type {number[] | null} */
-  let prev = null; // [X, Y, depth, visible]
+  /** @type {[number, number, number, number, number, boolean] | null} */
+  let prev = null; // [ex, ny, depth, X, Y, visible]
   let open = false;
   let px = 0;
   let py = 0;
@@ -146,13 +146,25 @@ function arcPath(B, pts) {
     const X = CX + R * ex;
     const Y = CY - R * ny;
     const visible = d >= 0 || ex * ex + ny * ny >= 1;
-    if (prev && prev[3] !== (visible ? 1 : 0)) {
-      // the limb lies between the two samples; where the depth changes sign, cut there
-      const crosses = prev[2] >= 0 !== d >= 0;
-      const t = crosses ? prev[2] / (prev[2] - d) : visible ? 1 : 0;
-      const lx = prev[0] + (X - prev[0]) * t;
-      const ly = prev[1] + (Y - prev[1]) * t;
-      if (prev[3]) {
+    if (prev && prev[5] !== visible) {
+      // the limb lies between the two samples: find where the drawn chord crosses it,
+      // by bisection under the same visibility rule (a lifted point past the limb
+      // still shows, so the boundary is not simply where the depth is zero)
+      let lo = 0;
+      let hi = 1;
+      for (let k = 0; k < 16; k++) {
+        const t = (lo + hi) / 2;
+        const tx = prev[0] + (ex - prev[0]) * t;
+        const ty = prev[1] + (ny - prev[1]) * t;
+        const td = prev[2] + (d - prev[2]) * t;
+        const tv = td >= 0 || tx * tx + ty * ty >= 1;
+        if (tv === prev[5]) lo = t;
+        else hi = t;
+      }
+      const t = (lo + hi) / 2;
+      const lx = CX + R * (prev[0] + (ex - prev[0]) * t);
+      const ly = CY - R * (prev[1] + (ny - prev[1]) * t);
+      if (prev[5]) {
         emit(lx, ly); // leaving the viewer's side: finish at the limb
         open = false;
       } else {
@@ -161,7 +173,7 @@ function arcPath(B, pts) {
       }
     }
     if (visible) emit(X, Y);
-    prev = [X, Y, d, visible ? 1 : 0];
+    prev = [ex, ny, d, X, Y, visible];
   }
   return out;
 }
@@ -177,17 +189,17 @@ function kindOf(l) {
  * Everything the globe draws for one view, as path data per stroke class.
  * @param {{ lat: number, lon: number, lit?: string | null, minTerrDeg?: number }} view
  *   lat/lon: the point facing the viewer; lit: the code of the region whose hubs and
- *   branches glow; minTerrDeg: terrestrial links shorter than this many degrees are
- *   left out (the server's first frame uses it to stay small)
+ *   branches glow; minTerrDeg: backbone hops shorter than this many degrees are left
+ *   out unless they touch the lit region (the server's first frame uses it to stay small)
  */
 export function globe({ lat, lon, lit = null, minTerrDeg = 0 }) {
   const B = basis(lat, lon);
   /** @type {Record<string, string[]>} */
   const paths = { sub1: [], sub2: [], sub3: [], terr: [], tether: [], glowFull: [], glowHalf: [] };
   for (const { link, pts, deg } of ARCS) {
-    if (link.terr && link.cables === 0 && !link.tether && deg < minTerrDeg) continue;
     const inA = lit !== null && REGION_OF[link.a] === lit;
     const inB = lit !== null && REGION_OF[link.b] === lit;
+    if (!inA && !inB && link.terr && link.cables === 0 && !link.tether && deg < minTerrDeg) continue;
     const cls = inA && inB ? 'glowFull' : inA || inB ? 'glowHalf' : kindOf(link);
     const d = arcPath(B, pts);
     if (d) paths[cls].push(d);
@@ -210,7 +222,7 @@ export function globe({ lat, lon, lit = null, minTerrDeg = 0 }) {
   /** @type {{ x: number, y: number, front: boolean } | null} */
   const litDot = litIndex >= 0 && HUB_VEC[litIndex] ? place(HUB_VEC[litIndex]) : null;
   HUB_VEC.forEach((p, i) => {
-    if (i === litIndex || i >= HUB_COUNT) return;
+    if (i >= HUB_COUNT || (i === litIndex && litDot && litDot.front)) return;
     const q = place(p);
     const dot = `M${q.x},${q.y}h.01`;
     if (!q.front) hubsBack.push(dot);

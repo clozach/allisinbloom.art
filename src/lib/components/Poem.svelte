@@ -87,7 +87,7 @@
 	<ByLine label={byline} href={phase === 'reading' ? null : '/'} />
 	<Afterglow bind:phase {body} {heading} {slug} region={$page.data.region ?? null} />
 	<noscript>
-		<nav class="plain" aria-label="Site"><a href="/">The Net</a></nav>
+		<nav class="plain" aria-label="Site"><a href="/">The Net</a> · <a href="/credits">credits</a></nav>
 	</noscript>
 	{#if Editor}
 		<svelte:component

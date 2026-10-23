@@ -30,7 +30,7 @@
 	{#each paragraphs as p}
 		<p>
 			{#each pieces(p) as piece}
-				{#if piece.href}<a href={piece.href} rel="license noopener">{piece.text}</a>{:else}{piece.text}{/if}
+				{#if piece.href}<a href={piece.href} rel={piece.href.startsWith('https://creativecommons.org/licenses/') ? 'license noopener' : 'noopener'}>{piece.text}</a>{:else}{piece.text}{/if}
 			{/each}
 		</p>
 	{/each}

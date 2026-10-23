@@ -18,8 +18,9 @@
 	/** @type {string} the UTC minute the offer belongs to */
 	export let minute = '';
 
-	// the server's frame leaves out terrestrial hops under a degree and a half, about
-	// 150 km, invisible at this size; the live globe draws them
+	// the server's frame leaves out backbone hops under a degree and a half, about
+	// 150 km, unless they touch the lit region: a few pixels each, and there are
+	// hundreds; the live globe draws them all
 	const FRAME_MIN_TERR_DEG = 1.35;
 	const start = nodeByCode(lit);
 	let lat = start?.lat ?? 20;
@@ -87,14 +88,16 @@
 		if (e.pointerType === 'mouse' && e.button !== 0) return;
 		dragging = true;
 		moved = false;
-		px = e.clientX;
-		py = e.clientY;
+		px = x0 = e.clientX;
+		py = y0 = e.clientY;
 		size = svg.clientWidth || 1;
 		svg.setPointerCapture(e.pointerId);
 	}
 	let raf = 0;
 	let ax = 0;
 	let ay = 0;
+	let x0 = 0;
+	let y0 = 0;
 	/** @param {PointerEvent} e */
 	function move(e) {
 		if (!dragging) return;
@@ -102,7 +105,7 @@
 		ay += e.clientY - py;
 		px = e.clientX;
 		py = e.clientY;
-		if (Math.abs(ax) + Math.abs(ay) > 2) moved = true;
+		if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 2) moved = true;
 		if (!raf) raf = requestAnimationFrame(turn);
 	}
 	/** one turn per frame, however many pointer events arrived */
@@ -136,8 +139,8 @@
 
 <section class="net" class:revealed data-lit={lit || ''} data-license={LICENSE} bind:this={section}>
 	{#if frame}
-		<img class="frame light" src={frame.light} width={SIZE} height={SIZE} alt={label} />
-		<img class="frame dark" src={frame.dark} width={SIZE} height={SIZE} alt={label} />
+		<img class="frame light" src={frame.light} width={SIZE} height={SIZE} alt={label} aria-describedby="net-credits" />
+		<img class="frame dark" src={frame.dark} width={SIZE} height={SIZE} alt={label} aria-describedby="net-credits" />
 	{:else}
 	<!-- the drag is a pointer extra; the keyboard turns the Earth from the link below -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -171,6 +174,9 @@
 	</svg>
 	{/if}
 	<a class="ask" {href} style="left:{anchor.x / 10}%;top:{anchor.y / 10}%" on:keydown={key}>Poem?</a>
+	<!-- the credit, in the markup the server sends: read by screen readers and crawlers, reached
+	     without JavaScript, never shown (the Net shows no text); its link is out of the Tab order -->
+	<p class="visually-hidden" id="net-credits">{desc} <a href={CREDITS} tabindex="-1">Credits</a></p>
 </section>
 
 <style>
@@ -294,13 +300,17 @@
 	.glow {
 		animation: pulse 4.5s ease-in-out infinite;
 	}
+	/* starts at the picture's 0.8 so the swap shows no jump */
 	@keyframes pulse {
 		0%,
 		100% {
-			opacity: 0.55;
+			opacity: 0.8;
 		}
-		50% {
+		30% {
 			opacity: 1;
+		}
+		70% {
+			opacity: 0.55;
 		}
 	}
 	.ask {
@@ -328,6 +338,18 @@
 		outline: 2px solid var(--accent-strong);
 		outline-offset: 4px;
 		border-radius: 4px;
+	}
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.glow {
