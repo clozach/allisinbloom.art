@@ -1,68 +1,13 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import PoemNav from '$lib/components/PoemNav.svelte';
 	import BloomShader from '$lib/components/BloomShader.svelte';
 	import PipelineDrawer from '$lib/components/PipelineDrawer.svelte';
 
-	// Get routes and poem titles from layout data
-	$: routes = $page.data.routes || ['opening-in-sight'];
-	$: poemTitles = ($page.data.poemTitles || {}) as Record<string, string>;
-
-	// Determine current route from URL
-	$: currentRoute = getCurrentRoute($page.url.pathname);
-	$: currentIndex = routes.indexOf(currentRoute);
-
-	// Navigation state - ensure routes are loaded and currentIndex is valid
-	$: validCurrentIndex = routes.length > 0 && currentIndex >= 0 ? currentIndex : 0;
-	$: hasPrevious = routes.length > 1 && validCurrentIndex > 0;
-	$: hasNext = routes.length > 1 && validCurrentIndex < routes.length - 1;
-	$: previousSlug = hasPrevious ? routes[validCurrentIndex - 1] : null;
-	$: nextSlug = hasNext ? routes[validCurrentIndex + 1] : null;
-	$: previousUrl = previousSlug ? `/poems/${previousSlug}` : null;
-	$: nextUrl = nextSlug ? `/poems/${nextSlug}` : null;
-	$: previousTitle = previousSlug ? (poemTitles[previousSlug] || previousSlug.replace(/-/g, ' ')) : '';
-	$: nextTitle = nextSlug ? (poemTitles[nextSlug] || nextSlug.replace(/-/g, ' ')) : '';
-
-	// Check if current page is a poem (home or /poems/*)
-	$: isPoemPage = $page.url.pathname === '/' || $page.url.pathname.startsWith('/poems/');
-
-	function getCurrentRoute(pathname: string) {
-		if (pathname === '/') {
-			return routes && routes.length > 0 ? routes[0] : 'opening-in-sight';
-		}
-		const match = pathname.match(/\/poems\/([^/]+)/);
-		return match ? match[1] : routes && routes.length > 0 ? routes[0] : 'opening-in-sight';
-	}
-
-	function handlePrevious() {
-		if (previousUrl) goto(previousUrl);
-	}
-
-	function handleNext() {
-		if (nextUrl) goto(nextUrl);
-	}
-
-	// Global keyboard navigation (ArrowLeft/Right and j/k)
-	onMount(() => {
-		const keyHandler = (e: KeyboardEvent) => {
-			if (!isPoemPage) return;
-			if (e.metaKey || e.ctrlKey || e.altKey) return;
-			const t = e.target as HTMLElement | null;
-			if (t?.closest('.tuner, .pipeline-dashboard, .poem-editor')) return;
-			if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|AUDIO|VIDEO)$/.test(t.tagName)))
-				return;
-			if (e.key === 'ArrowLeft' || e.key === '<' || e.key === 'j' || e.key === ',') {
-				handlePrevious();
-			} else if (e.key === 'ArrowRight' || e.key === '>' || e.key === 'k' || e.key === '.') {
-				handleNext();
-			}
-		};
-		window.addEventListener('keydown', keyHandler);
-		return () => window.removeEventListener('keydown', keyHandler);
-	});
+	// A poem page shows its poem and, in time, the afterglow; / is the Net.
+	$: isPoemPage = $page.url.pathname.startsWith('/poems/');
+	$: isNet = $page.url.pathname === '/';
+	$: currentRoute = $page.url.pathname.match(/\/poems\/([^/]+)/)?.[1] ?? '';
 </script>
 
 <svelte:head>
@@ -73,20 +18,19 @@
 	/>
 </svelte:head>
 
+<div class="app">
+	<main class:home={isNet}>
+		{#key $page.url.pathname}<slot />{/key}
+	</main>
+</div>
+
+<!-- after the page in the document, so the page's own offer is the first Tab stop;
+     both hotspots are fixed to the screen's corner whatever their place here -->
 {#if isPoemPage}
 	<BloomShader slug={currentRoute} />
 {:else}
-  <PipelineDrawer />
+	<PipelineDrawer />
 {/if}
-
-<div class="app">
-	<main>
-		{#key $page.url.pathname}<slot />{/key}
-		{#if isPoemPage}
-			<PoemNav {previousUrl} {nextUrl} {previousTitle} {nextTitle} />
-		{/if}
-	</main>
-</div>
 
 <style>
 	/* Theme tokens: light is the canonical palette, dark mirrors it warmly.
@@ -207,5 +151,13 @@
 		margin-bottom: 30vh;
 		padding: 0;
 		/* poem type size lives in src/routes/poems/_poem.svelte */
+	}
+	/* the Net fills the first screen, centred, with nothing else on the page */
+	main.home {
+		width: 100%;
+		margin: 0;
+		min-height: 100dvh;
+		display: grid;
+		place-items: center;
 	}
 </style>

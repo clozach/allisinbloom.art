@@ -3,6 +3,7 @@ import { drafts } from '$lib/server/poemDrafts.js';
 import { poemEditMode, poemEditingAvailable } from '$lib/server/poemEditAccess.js';
 import { savedPoemDocument } from '$lib/server/poemEdits/saved.js';
 import { poemCdnCacheHeaders } from '$lib/server/poemCdnCache.js';
+import { whereFrom } from '$lib/net/where.js';
 import routeText from '../../static/route.txt?raw';
 
 const published = routeText
@@ -28,6 +29,9 @@ export async function load(event) {
 	});
 	if (cdn) event.setHeaders(cdn);
 	return {
+		// the node that answered: a poem page's picture of the day is its region's.
+		// Production poem pages are cached per region, so the cached copy agrees.
+		region: whereFrom(event.request.headers, event.url).code,
 		poemEditing: poemEditingAvailable(event),
 		editedPoem,
 		draftPoems: drafts.map(({ title, slug, date }) => ({

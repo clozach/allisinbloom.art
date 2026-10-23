@@ -42,11 +42,12 @@ const hashCanvas = () =>
     resolve(h);
   });
 
-test.describe('Home redirects to a poem', () => {
-  test('landing on / ends up on an available poem', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const slug = new URL(page.url()).pathname.match(/^\/poems\/([^/]+)$/)?.[1];
-    expect(slug, `redirected to ${page.url()}, not a poem page`).toBeTruthy();
+test.describe('Poem pages', () => {
+  // / is the Net since 2026-10-23 (tests/the-net.spec.ts); its offer is a poem the site has.
+  test('the Net offers an available poem', async ({ page }) => {
+    await page.goto('/?node=iad1', { waitUntil: 'networkidle' });
+    const href = await page.getByRole('link', { name: 'Poem?' }).getAttribute('href');
+    const slug = href?.match(/^\/poems\/([^/]+)$/)?.[1];
     expect(AVAILABLE_ROUTES).toContain(slug);
   });
 
