@@ -38,3 +38,7 @@ evidence/
 # Lighthouse reports (scripts/lighthouse/); the recipe writes outside the repo by default
 /lh-out/
 /.poem-edits/
+
+# The Net: fetched sources (scripts/net/fetch.mjs) and the review sidecar the build regenerates
+/data/raw/
+src/lib/net/net.names.json
