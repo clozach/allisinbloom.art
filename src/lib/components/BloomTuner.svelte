@@ -8,6 +8,7 @@
   import { movableMenu } from '$lib/movableMenu';
   import NumberField from './NumberField.svelte';
   import PipelineCard from './PipelineCard.svelte';
+  import { loadPace, savePace, resetPace, DEFAULT_PACE } from '$lib/net/reading.js';
 
   // step = per-px scrub step and ↑/↓ nudge; decimals follow from it
   const PARAMS = [
@@ -65,6 +66,32 @@
   export let paste;
 
   $: visibleParams = PARAMS.filter((p) => !p.motion || prefs.animate);
+
+  // The poem page's clock (src/lib/net/reading.js), site-wide: how slow a reader
+  // the page waits for, and how long the picture then takes. Afterglow listens.
+  /** @type {{ key: keyof import('$lib/net/reading.js').Pace, label: string, unit: string, icon: string, min: number, max: number, step: number }[]} */
+  const PACE_FIELDS = [
+    { key: 'wpmMean', label: 'reading rate, mean', unit: ' wpm', icon: 'speed', min: 60, max: 400, step: 1 },
+    { key: 'wpmSd', label: 'reading rate, spread', unit: ' wpm', icon: 'ratio', min: 0, max: 150, step: 1 },
+    { key: 'sdBelow', label: 'spreads below the mean', unit: ' sd', icon: 'height', min: 0, max: 4, step: 0.5 },
+    { key: 'linePauseMs', label: 'pause per line', unit: 'ms', icon: 'duration', min: 0, max: 3000, step: 50 },
+    { key: 'floorMs', label: 'shortest reading time', unit: 'ms', icon: 'duration', min: 0, max: 60000, step: 500 },
+    { key: 'waitMs', label: 'wait for the picture', unit: 'ms', icon: 'duration', min: 5000, max: 600000, step: 1000 },
+    { key: 'waitJitterMs', label: 'give or take', unit: 'ms', icon: 'distance', min: 1000, max: 60000, step: 500 },
+  ];
+  let pace = loadPace();
+  function onPace() {
+    savePace(pace);
+    window.dispatchEvent(new CustomEvent('net-pace'));
+  }
+  function paceReset() {
+    pace = resetPace();
+    window.dispatchEvent(new CustomEvent('net-pace'));
+  }
+  /** @param {string} to */
+  function afterglow(to) {
+    window.dispatchEvent(new CustomEvent('net-afterglow', { detail: to }));
+  }
 
   let flash = '';
   /** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -168,6 +195,27 @@
     <div class="note">drag an icon to scrub, click a number to type. 🎲 rolls a new blot; revert returns to the one this poem was born with. paste a copied set (⌘V with the panel open) to take it on.</div>
     <div class="note">generated palettes clear 4.5:1 against the ink — the pickers can't promise that; recheck before keeping a hand-picked color</div>
   {/if}
+  <div class="group">pace · every poem</div>
+  <div class="fields">
+    {#each PACE_FIELDS as p (p.key)}
+      <NumberField
+        label={p.label}
+        unit={p.unit}
+        icon={p.icon}
+        min={p.min}
+        max={p.max}
+        step={p.step}
+        bind:value={pace[p.key]}
+        onChange={onPace}
+      />
+    {/each}
+  </div>
+  <div class="note">the poem keeps the page to itself until a reader {DEFAULT_PACE.sdBelow} spreads slower than the mean could have finished it; the picture follows the wait, never to the second</div>
+  <div class="tuner-actions">
+    <button on:click={() => afterglow('next')}>reveal now</button>
+    <button on:click={() => afterglow('reset')}>start over</button>
+    <button on:click={paceReset}>reset pace</button>
+  </div>
   <div class="tuner-actions">
     <button on:click={copyTune}>{flash || 'copy values'}</button>
     <button on:click={revert}>revert</button>

@@ -11,21 +11,26 @@ const ROUTES = readFileSync(new URL('../static/route.txt', import.meta.url), 'ut
 const BLUESKY = 'https://bsky.app/profile/allisinbloom.bsky.social';
 
 test.describe('Site nav', () => {
-  test('the signature links home (first poem), tooltip only, no º suffix', async ({ page }) => {
-    await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
+  // Since the Net (2026-10-23) a poem page offers nothing at first: the signature
+  // is a plain image until the poem has had its time, then the way to the Net.
+  test('the signature becomes the home link (the Net), tooltip only, no º suffix', async ({ page }) => {
+    await page.goto(`/poems/${ROUTES[1]}?afterglow=message`, { waitUntil: 'networkidle' });
     const sig = page.locator('a.sig-link');
-    await expect(sig).toHaveAttribute('href', `/poems/${ROUTES[0]}`);
-    await expect(sig).toHaveAttribute('title', 'home');
-    await expect(sig).toHaveAccessibleName(/home/);
+    await expect(sig).toHaveAttribute('href', '/');
+    await expect(sig).toHaveAttribute('title', 'The Net');
+    await expect(sig).toHaveAccessibleName(/The Net/);
     // unmarked link: the global a::after º must not render on it
     const after = await sig.evaluate((el) => getComputedStyle(el, '::after').content);
     expect(after).toBe('none');
     await sig.click();
-    await expect(page).toHaveURL(new RegExp(`/poems/${ROUTES[0]}$`));
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('img', { name: /The Net: a wire globe/ })).toBeVisible();
   });
 
-  test('the Bluesky butterfly sits between the poem titles and opens a new tab', async ({ page }) => {
+  test('the Bluesky butterfly appears with the message, centred, and opens a new tab', async ({ page }) => {
     await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
+    await expect(page.locator('.poem-nav')).toHaveCount(0);
+    await page.goto(`/poems/${ROUTES[1]}?afterglow=message`, { waitUntil: 'networkidle' });
     const sky = page.locator('.poem-nav a.sky');
     await expect(sky).toHaveAttribute('href', BLUESKY);
     await expect(sky).toHaveAttribute('target', '_blank');
@@ -33,33 +38,20 @@ test.describe('Site nav', () => {
     await expect(sky).toHaveAccessibleName(/Bluesky/);
     const after = await sky.evaluate((el) => getComputedStyle(el, '::after').content);
     expect(after).toBe('none');
-    // centred: between the previous and next links, horizontally
-    const [prev, mid, next] = await Promise.all([
-      page.locator('.nav-link.prev').boundingBox(),
-      sky.boundingBox(),
-      page.locator('.nav-link.next').boundingBox()
-    ]);
-    if (!prev || !mid || !next) throw new Error('nav boxes missing');
-    expect(mid.x).toBeGreaterThan(prev.x + prev.width);
-    expect(mid.x + mid.width).toBeLessThan(next.x);
-    // …and halfway between them: equal air on both sides (±2 px)
-    const leftAir = mid.x - (prev.x + prev.width);
-    const rightAir = next.x - (mid.x + mid.width);
-    expect(Math.abs(leftAir - rightAir), `air L ${leftAir} vs R ${rightAir}`).toBeLessThanOrEqual(2);
-    expect(leftAir).toBeGreaterThanOrEqual(10);
+    // centred in the nav strip, with no previous/next titles beside it any more
+    await expect(page.locator('.nav-link')).toHaveCount(0);
+    const [nav, mid] = await Promise.all([page.locator('.nav-links').boundingBox(), sky.boundingBox()]);
+    if (!nav || !mid) throw new Error('nav boxes missing');
+    const navMid = nav.x + nav.width / 2;
+    expect(Math.abs(mid.x + mid.width / 2 - navMid)).toBeLessThanOrEqual(2);
     // ink-coloured, not the accent
     const color = await sky.evaluate((el) => getComputedStyle(el).color);
     const ink = await page.evaluate(() => getComputedStyle(document.body).color);
     expect(color).toBe(ink);
   });
 
-  test('the previous/next titles carry no º mark — arrows and whitespace suffice', async ({ page }) => {
+  test('the site-wide º still applies to links in prose', async ({ page }) => {
     await page.goto(`/poems/${ROUTES[1]}`, { waitUntil: 'networkidle' });
-    for (const sel of ['.nav-link.prev', '.nav-link.next']) {
-      const after = await page.locator(sel).evaluate((el) => getComputedStyle(el, '::after').content);
-      expect(after, `${sel} ::after`).toBe('none');
-    }
-    // the site-wide º still applies to links in prose (regression guard for the global rule)
     const prose = await page.evaluate(() => {
       const a = document.createElement('a');
       a.href = '/';
@@ -69,13 +61,6 @@ test.describe('Site nav', () => {
       return c;
     });
     expect(prose).toContain('º');
-  });
-
-  test('the butterfly is still there on the first and last poems', async ({ page }) => {
-    for (const slug of [ROUTES[0], ROUTES[ROUTES.length - 1]]) {
-      await page.goto(`/poems/${slug}`, { waitUntil: 'networkidle' });
-      await expect(page.locator('.poem-nav a.sky')).toBeVisible();
-    }
   });
 
   test('the poems index lists what the site navigates and not the layout fixture', async ({ page }) => {

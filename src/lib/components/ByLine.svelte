@@ -7,28 +7,36 @@
 	import s288 from '$lib/assets/artist-sig-288.webp?no-inline';
 	import s432 from '$lib/assets/artist-sig-432.webp?no-inline';
 	import fallback from '$lib/assets/artist-sig-288.png?no-inline';
-	import { page } from '$app/stores';
-	// The signature is the site's home link: the first poem in static/route.txt
-	// (never `/`, which redirects to a random poem). Unnamed on the page — the
-	// tooltip and the accessible name carry the word.
-	$: homeHref = `/poems/${($page.data.routes || ['opening-in-sight'])[0]}`;
+	// The signature is the site's home link, to the Net, once the poem page offers
+	// it (Afterglow decides when); until then it is the signature and nothing else.
+	// Unnamed on the page: the tooltip and the accessible name carry the word.
+	/** @type {string | null} */
+	export let href = null;
 </script>
 
 <span class="author"
-	><span class="by">{label}</span><a
-		class="sig-link"
-		href={homeHref}
-		title="home"
-		aria-label="home — the first poem"
-		data-sveltekit-preload-data="hover"
-		><picture
-			><source
-				type="image/webp"
-				srcset="{s160} 160w, {s288} 288w, {s432} 432w"
-				sizes="(min-width: 36rem) 9rem, 25vw"
-			/><img class="sig" src={fallback} width="288" height="66" alt="Allisin Bloom" /></picture
-		></a
-	></span
+	><span class="by">{label}</span>{#if href}<a
+			class="sig-link"
+			{href}
+			title="The Net"
+			aria-label="The Net — home"
+			data-sveltekit-preload-data="hover"
+			><picture
+				><source
+					type="image/webp"
+					srcset="{s160} 160w, {s288} 288w, {s432} 432w"
+					sizes="(min-width: 36rem) 9rem, 25vw"
+				/><img class="sig" src={fallback} width="288" height="66" alt="Allisin Bloom" /></picture
+			></a
+		>{:else}<span class="sig-link"
+			><picture
+				><source
+					type="image/webp"
+					srcset="{s160} 160w, {s288} 288w, {s432} 432w"
+					sizes="(min-width: 36rem) 9rem, 25vw"
+				/><img class="sig" src={fallback} width="288" height="66" alt="Allisin Bloom" /></picture
+			></span
+		>{/if}</span
 >
 
 <style>

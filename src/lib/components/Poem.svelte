@@ -3,6 +3,7 @@
 	import ByLine from './ByLine.svelte';
 	import PoemTitle from './PoemTitle.svelte';
 	import PoemContent from './PoemContent.svelte';
+	import Afterglow from './Afterglow.svelte';
 	import { page } from '$app/stores';
 
 	/**
@@ -16,6 +17,14 @@
 	let body;
 	/** @type {HTMLDivElement | undefined} */
 	let heading;
+	/**
+	 * What the page offers after the poem: nothing until a slow reader could have
+	 * finished (Afterglow keeps the clock). The signature becomes the way to the Net
+	 * at the same moment.
+	 * @type {'reading' | 'message' | 'thumb' | 'open'}
+	 */
+	let phase = 'reading';
+	$: slug = $page.url.pathname.split('/')[2] ?? '';
 	/**
 	 * The saved site version arrives with the page for every reader; a save in
 	 * this visit replaces it, and a client-side move to another poem brings its own.
@@ -75,7 +84,11 @@
 	<PoemContent bind:element={body} html={editedHtml}>
 		<slot />
 	</PoemContent>
-	<ByLine label={byline} />
+	<ByLine label={byline} href={phase === 'reading' ? null : '/'} />
+	<Afterglow bind:phase {body} {heading} {slug} region={$page.data.region ?? null} />
+	<noscript>
+		<nav class="plain" aria-label="Site"><a href="/">The Net</a></nav>
+	</noscript>
 	{#if Editor}
 		<svelte:component
 			this={Editor}
@@ -84,7 +97,15 @@
 			{heading}
 			{title}
 			onApply={applyDocument}
-			slug={$page.url.pathname.split('/')[2]}
+			{slug}
 		/>
 	{/if}
 </div>
+
+<style>
+	.plain {
+		margin-top: 2.5rem;
+		font-style: italic;
+		font-size: 0.85em;
+	}
+</style>
