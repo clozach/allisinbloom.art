@@ -44,20 +44,29 @@ poem page, navigation and index-card components; Figma edits do not deploy the s
 - [ ] (user-activity): populate the rest of the file & add more poems to flesh out the site some more.
 - [x] Staging branch previews via Vercel Git integration, with CI on pushes and pull requests.
 
-## Site nav (signature = home, butterfly = Bluesky)
+## The Net (the front door since 2026-10-23)
 
-Two quiet links on every poem page (2026-08-23):
+`/` is a wire-frame Earth with the network's nodes; the one that answered you is
+lit, and the page's one offer, *Poem?*, appears on hover, tap or focus. A poem
+page offers nothing until a slow reader could have finished the poem, then a
+message, then about ninety seconds later a small picture of the day for your
+region. [The Net](docs/the-net.md) has the whole of it: the pieces, the clock,
+the pick, Lighthouse, how to test and how to remove.
 
-- **The signature is the home link.** `src/lib/components/ByLine.svelte` wraps
-  the signature image in an `<a>` to the first poem in `static/route.txt`
-  (`$page.data.routes[0]` — never `/`, which redirects to a *random* poem). It is
-  unnamed on the page: the tooltip (`title="home"`) and the accessible name
+## Site nav (signature = the Net, butterfly = Bluesky)
+
+Two quiet links on every poem page, once the poem has had its time (2026-08-23;
+timed since 2026-10-23):
+
+- **The signature is the home link, to the Net.** `src/lib/components/ByLine.svelte`
+  wraps the signature image in an `<a href="/">` when the page hands it the
+  address (`Afterglow` decides when); before that it is a plain image. It is
+  unnamed on the page: the tooltip (`title="The Net"`) and the accessible name
   carry the word; the global `a::after` º is suppressed on it.
-- **A Bluesky butterfly** (`src/lib/components/PoemNav.svelte`, `.sky`) sits at
-  the exact centre between the previous/next titles — a flex row with
-  `space-between` and negative half-width butterfly margins, 0.75 rem of air
-  per side, body ink (`--ink`), opens `bsky.app/profile/allisinbloom.bsky.social`
-  in a new tab. The nav now renders on every poem page, first and last included.
+- **A Bluesky butterfly** (`src/lib/components/PoemNav.svelte`, `.sky`) sits
+  centred beneath the poem, body ink (`--ink`), and opens
+  `bsky.app/profile/allisinbloom.bsky.social` in a new tab. The previous/next
+  titles that flanked it are gone: the Net is the navigation.
 
 Tests: `tests/site-nav.spec.ts`. To test removal: unwrap the image in
 `ByLine.svelte` and delete the `.sky` anchor + its styles in `PoemNav.svelte`.
