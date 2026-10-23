@@ -69,32 +69,34 @@
   "parameters": {
     "clusterRadiusKm": 100,
     "snapKm": 30,
-    "joinKm": 1,
+    "joinKm": 5,
+    "reachKm": 15,
     "junctionMergeKm": 25,
+    "maxLostBranches": 3,
     "zooMaxKm": 3000,
-    "plannedAfterYear": 2021,
+    "plannedAfter": "2021-06 (a service month or quarter after June 2021, or a year after 2021)",
     "coordinatePrecisionDeg": 0.1,
     "maxBytes": 36000
   },
   "counts": {
-    "nodes": 1267,
-    "hubs": 980,
+    "nodes": 1256,
+    "hubs": 973,
     "hubsBySeed": {
       "vercel": 19,
-      "landing": 589,
-      "zoo": 372
+      "landing": 581,
+      "zoo": 373
     },
-    "junctions": 287,
-    "links": 2188,
+    "junctions": 283,
+    "links": 2179,
     "linksByKind": {
-      "submarine": 1275,
-      "submarineAndBackbone": 33,
-      "backbone": 880,
+      "submarine": 1267,
+      "submarineAndBackbone": 36,
+      "backbone": 876,
       "tether": 0,
-      "touchingAJunction": 700,
+      "touchingAJunction": 695,
       "cablesClampedAt15": 0
     },
-    "reachablePairMethodLinks": 1626,
+    "reachablePairMethodLinks": 1773,
     "longestLink": {
       "km": 10867,
       "between": [
@@ -102,41 +104,113 @@
         "junction of Pacific Light Cable Network (PLCN)"
       ]
     },
-    "maxHubDegree": 28,
+    "maxHubDegree": 29,
     "tethered": []
   },
   "telegeography": {
     "landingPointFeatures": 1439,
     "landingPoints": 1299,
     "landingPointRepeats": 140,
-    "landingPointsInHubs": 1175,
+    "landingPointsInHubs": 1162,
     "cableGeoFeatures": 490,
     "cables": 484,
-    "cablesPlannedOrAfter2021Dropped": 35,
+    "cablesPlannedAtSnapshotDropped": 46,
+    "cablesPlannedLater2021Dropped": [
+      "crosschannel-fibre (2021 October)",
+      "glo-2 (2021 Q3)",
+      "havhingstenceltixconnect-2-cc-2 (2021 Q4)",
+      "havhingstennorth-sea-connect-nsc (2021 Q4)",
+      "havsil (2021 Q4)",
+      "n0r5ke-viking (2021 Q3)",
+      "no-uk (2021 Q4)",
+      "oman-australia-cable-oac (2021 December)",
+      "peace-cable (2021 Q4)",
+      "senegal-horn-of-africa-regional-express-share-cable (2021 Q4)",
+      "ultramar-ge (2021 December)"
+    ],
     "cablesWithNoServiceYearKept": [
       "la-gomera-el-hierro",
       "pencan-9",
       "tenerife-la-palma"
     ],
     "cablesWithoutGeometry": 0,
-    "cablesYieldingLinks": 449,
+    "cablesYieldingLinks": 438,
     "cablesYieldingNoLinks": [],
     "tbdLandingsDropped": 0,
-    "segments": 1118,
-    "segmentEndsAtLandingPoints": 1735,
-    "looseSegmentEnds": 501,
-    "looseEndsJoinedToAnotherSegment": 488,
-    "looseEndsLeftDangling": 13,
-    "landingPointsOnALineInterior": 397,
+    "segments": 1092,
+    "segmentEndsAtLandingPoints": 1695,
+    "looseSegmentEnds": 489,
+    "looseEndsJoinedWithin5Km": 478,
+    "looseEndsReachedWithin15Km": 0,
+    "looseEndsLeftDangling": 11,
+    "vertexJunctions": 565,
+    "landingPointsOnALineInterior": 386,
     "landingPointsNotOnTheirCable": 0,
-    "junctionsMergedWithin25Km": 5,
+    "junctionsMergedWithin25Km": 86,
     "fragmentsNoLandingPointReaches": 0,
-    "junctionsAfterMerging": 439,
-    "junctionsJoinedToAHub": 103,
-    "junctionDeadEndsRemoved": 8,
-    "passThroughJunctionsRemoved": 41,
+    "cablesDrawnInMoreThanOnePiece": [
+      "alba-1",
+      "america-movil-submarine-cable-system-1-amx-1",
+      "apollo",
+      "avassa",
+      "bt-highlands-and-islands-submarine-cable-system",
+      "bt-north-sea",
+      "caribbean-regional-communications-infrastructure-program-carcip",
+      "colombian-festoon",
+      "converge-domestic-submarine-cable-network-cdscn",
+      "cross-straits-cable-network",
+      "falcon",
+      "fibralink",
+      "flag-atlantic-1-fa-1",
+      "hics-hawaii-inter-island-cable-system",
+      "hifn-hawaii-island-fibre-network",
+      "high-capacity-undersea-guernsey-optical-fibre-hugo",
+      "ingrid",
+      "jaka2ladema",
+      "janna",
+      "kattegat-2",
+      "mataram-kupang-cable-system-mkcs",
+      "pacific-caribbean-cable-system-pccs",
+      "palapa-ring-east",
+      "palapa-ring-middle",
+      "pan-american-pan-am",
+      "pan-european-crossing-uk-ireland",
+      "paniolo-cable-network",
+      "pldt-domestic-fiber-optic-network-dfon",
+      "sape-labuanbajo-ende-kupang-cable-systems",
+      "sjjk",
+      "south-america-1-sam-1",
+      "south-american-crossing-sac",
+      "southern-cross-cable-network-sccn",
+      "terra-sw",
+      "transcan-2"
+    ],
+    "junctionsAfterMerging": 528,
+    "junctionsJoinedToAHub": 191,
+    "junctionDeadEndsRemoved": 6,
+    "branchesToALandingPointLostAsDeadEnds": [
+      {
+        "landing": "Angoon, AK, United States",
+        "junction": "junction of Alaska United Southeast (AU-SE)",
+        "at": [
+          -135.899829491346,
+          55.843185841481
+        ],
+        "hubLeftUnlinked": false
+      },
+      {
+        "landing": "Funchal, Portugal",
+        "junction": "junction of CAM Ring",
+        "at": [
+          -13.7249160412008,
+          32.0527080234862
+        ],
+        "hubLeftUnlinked": false
+      }
+    ],
+    "passThroughJunctionsRemoved": 48,
     "junctionsStrandedWithoutAHub": 0,
-    "landingPointPairsReachable": 2257,
+    "landingPointPairsReachable": 2603,
     "plannedDropped": [
       "2africa",
       "africa-1",
@@ -151,13 +225,18 @@
       "caribbean-express-cx",
       "celtic-norse",
       "confluence-1",
+      "crosschannel-fibre",
       "eastern-arctic-undersea-fibre-optic-network-eaufon",
       "echo",
       "firmina",
       "galapagos-cable-system",
       "gignet-1",
+      "glo-2",
       "gondwana-2picot-2",
       "grace-hopper",
+      "havhingstenceltixconnect-2-cc-2",
+      "havhingstennorth-sea-connect-nsc",
+      "havsil",
       "india-asia-xpress-iax",
       "india-europe-xpress-iex",
       "ionian",
@@ -165,13 +244,19 @@
       "mandji-fiber-optic-cable",
       "maple-leaf-fibre",
       "mist",
+      "n0r5ke-viking",
       "natitua-sud",
+      "no-uk",
       "nzadi-cable-system",
+      "oman-australia-cable-oac",
+      "peace-cable",
       "sealink",
       "sednalink-fibre",
+      "senegal-horn-of-africa-regional-express-share-cable",
       "southeast-asia-japan-cable-2-sjc2",
       "southern-cross-next",
       "trans-caspian-fiber-optic-tcfo",
+      "ultramar-ge",
       "wall-li"
     ]
   },
@@ -482,6 +567,8 @@
     "nodesClustered": 1402,
     "edgesKept": 1882,
     "edgesOver3000KmDropped": 195,
+    "edgesOver3000KmBetweenTheirHubsDropped": 2,
+    "hubPairsOver3000KmDropped": 1,
     "longestDropped": [
       {
         "km": 15989,
@@ -566,8 +653,8 @@
     ]
   },
   "bytes": {
-    "raw": 32580,
-    "gzip": 12249,
-    "brotli": 9098
+    "raw": 32390,
+    "gzip": 12145,
+    "brotli": 9017
   }
 }

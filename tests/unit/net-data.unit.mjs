@@ -69,3 +69,9 @@ test('the globe is full: at least 400 hubs and 400 links, 300 of them submarine'
   assert.ok(links.length >= 400, `${links.length} links`);
   assert.ok(links.filter((l) => l.cables >= 1).length >= 300, 'submarine links');
 });
+
+test('the build lost at most three branches to a landing point as dead ends', () => {
+  const meta = JSON.parse(fs.readFileSync(new URL('../../src/lib/net/net.meta.json', import.meta.url), 'utf8'));
+  const lost = meta.telegeography.branchesToALandingPointLostAsDeadEnds;
+  assert.ok(Array.isArray(lost) && lost.length <= meta.parameters.maxLostBranches && meta.parameters.maxLostBranches <= 3, JSON.stringify(lost));
+});

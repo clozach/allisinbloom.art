@@ -43,11 +43,17 @@ with its notice preserved below.
 
 Landing points and backbone PoPs merged into hubs within 100 km; each cable drawn as a
 chain of stops in route order, each landing point or branching junction linked to the
-next (junctions within 25 km of each other on a cable merged, junctions within 100 km of
-a hub joined to it, dead ends and junctions where nothing branches removed); backbone
-adjacencies longer than 3,000 km left out as overlays on submarine routes; links
-deduplicated and drawn as great-circle arcs; planned cables removed; coordinates rounded
-to 0.1°; dotted links to Vercel regions are schematic, not real routes.
+next (a branch's loose end joined to the nearest line of its cable within 5 km, or 15 km
+failing that; a vertex within 5 km of another line of its cable made a junction on both;
+junctions within 25 km of each other on a cable merged, junctions within 100 km of a hub
+joined to it, dead ends and junctions where nothing branches removed); backbone
+adjacencies longer than 3,000 km, measured between their points and again between the
+hubs they joined, left out as overlays on submarine routes; links deduplicated and drawn
+as great-circle arcs; cables still planned at the snapshot removed (those whose service
+date is after June 2021, reading the month, or a quarter's first month, where the record
+gives one; a bare year counts as in service through that year, and a record with no
+date is kept); coordinates rounded to 0.1°; dotted links to Vercel regions are
+schematic, not real routes.
 
 No endorsement by TeleGeography, Adelaide University, the Topology Zoo's authors or
 Vercel is implied. The data is provided as is, without warranty.

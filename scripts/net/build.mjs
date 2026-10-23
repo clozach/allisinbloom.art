@@ -76,10 +76,34 @@ function rawDir() {
   return path.join(base, days[days.length - 1]);
 }
 
-/** The year a cable entered service, or null when the record gives none ("n.a."). @param {unknown} rfs */
-function rfsYear(rfs) {
-  const m = /\b(\d{4})\b/.exec(String(rfs ?? ''));
-  return m ? Number(m[1]) : null;
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const SNAPSHOT_MONTH = { year: 2021, month: 6 }; // the snapshot is of 2021-06-29
+
+/**
+ * When a cable entered (or was to enter) service: its year and month, the month null
+ * when the record gives only a year, a quarter read as its first month; null when the
+ * record gives no year ("n.a.").
+ * @param {unknown} rfs e.g. "2019", "2021 October", "2021 Q3", "n.a."
+ * @returns {{ year: number, month: number | null } | null}
+ */
+function serviceDate(rfs) {
+  const s = String(rfs ?? '').toLowerCase();
+  const y = /\b(\d{4})\b/.exec(s);
+  if (!y) return null;
+  const q = /\bq([1-4])\b/.exec(s);
+  const m = MONTHS.findIndex((name) => new RegExp(`\\b${name}`).test(s));
+  return { year: Number(y[1]), month: q ? (Number(q[1]) - 1) * 3 + 1 : m >= 0 ? m + 1 : null };
+}
+
+/**
+ * Still planned at the snapshot: a service date after June 2021. A bare year counts as
+ * in service during that year; a record with no date is kept.
+ * @param {{ year: number, month: number | null } | null} d
+ */
+function plannedAtSnapshot(d) {
+  if (!d) return false;
+  if (d.year !== SNAPSHOT_MONTH.year) return d.year > SNAPSHOT_MONTH.year;
+  return d.month !== null && d.month > SNAPSHOT_MONTH.month;
 }
 
 /** Landing points, one per landing_point_id, in file order. @param {string} dir */
@@ -128,18 +152,22 @@ function loadCables(dir) {
 // Submarine links. Each cable becomes a small graph of stops: landing points and
 // junctions. A segment's end within 30 km of one of the cable's own landing points
 // lands there; any other end is a junction. The 2021 map draws a branch as a line
-// that ends ON its trunk (a T-junction, not a shared end) and draws some landing
-// points as places a line passes through, so a loose end within JUNCTION_KM of
-// another line of the same cable becomes a stop on that line where it touches, and a
-// landing point no segment ends at becomes a stop on the line that passes nearest it
-// (within 30 km). Along each line, in route order, each stop links to the next: a
-// trunk is a chain junction → junction → landing, a branch is junction → landing.
-// Junctions of one cable within MERGE_KM of each other merge, and fragments no
-// landing point reaches are dropped. (main() then joins junctions near a hub to it,
-// and removes dead ends and pass-through junctions.)
+// that ends ON its trunk (a T-junction, not a shared end), draws some branches from
+// landing to landing through a vertex on the trunk, and draws some landing points as
+// places a line passes through. So a loose end becomes a stop on the nearest other
+// line of its cable within JUNCTION_KM (or, failing that, REACH_KM) where it touches;
+// a vertex within JUNCTION_KM of another line of the cable becomes a stop on both;
+// and a landing point no segment ends at becomes a stop on the line that passes
+// nearest it (within 30 km). Along each line, in route order, each stop links to the
+// next: a trunk is a chain junction → junction → landing, a branch is junction →
+// landing. Junctions of one cable within MERGE_KM of each other merge, and fragments
+// no landing point reaches are dropped. (main() then joins junctions near a hub to
+// it, and removes dead ends and pass-through junctions.)
 
-const JUNCTION_KM = 1;
+const JUNCTION_KM = 5; // a loose end or a vertex this close to another line of its cable is a junction on it
+const REACH_KM = 15; // a loose end still unjoined reaches the nearest line of its cable within this
 const MERGE_KM = 25;
+const MAX_LOST_BRANCHES = 3; // branches to a landing point lost as dead ends: a regression shows here
 
 /** @param {number[]} p [lon, lat] @returns {[number, number, number]} */
 function vec(p) {
@@ -190,6 +218,27 @@ function nearestOnLine(p, line) {
     if (dk < best.km) best = { km: dk, s: k + t };
   }
   return best;
+}
+
+/** A line's extent in degrees. @param {number[][]} line */
+function bbox(line) {
+  let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const [lo, la] of line) [w, s, e, n] = [Math.min(w, lo), Math.min(s, la), Math.max(e, lo), Math.max(n, la)];
+  return { w, s, e, n };
+}
+
+/**
+ * Whether a point might lie within JUNCTION_KM of a line with this extent: a cheap
+ * test before the exact one (a degree of latitude is 111 km; longitude is not tested
+ * near the poles).
+ * @param {{ w: number, s: number, e: number, n: number }} b @param {number[]} p
+ */
+function nearBox(b, p) {
+  const m = JUNCTION_KM / 100;
+  if (p[1] < b.s - m || p[1] > b.n + m) return false;
+  if (Math.abs(p[1]) > 80) return true;
+  const ml = m / Math.cos(p[1] * RAD);
+  return p[0] >= b.w - ml && p[0] <= b.e + ml;
 }
 
 /** @param {string} a @param {string} b */
@@ -243,18 +292,20 @@ function cableGraphs(lps, { cables, lines }) {
   /** @type {Map<string, Set<string>>} */
   const reach = new Map();
   const stats = {
-    cables: cables.size, planned: /** @type {string[]} */ ([]), noYear: /** @type {string[]} */ ([]),
+    cables: cables.size, planned: /** @type {string[]} */ ([]), plannedLate2021: /** @type {string[]} */ ([]),
+    noYear: /** @type {string[]} */ ([]),
     noGeometry: 0, noLinks: /** @type {string[]} */ ([]), used: 0, tbdLandings: 0, segments: 0,
-    snappedEnds: 0, looseEnds: 0, joinedEnds: 0, danglingEnds: 0, throughLandings: 0,
-    unplacedLandings: 0, junctions: 0, junctionsMerged: 0, fragmentsDropped: 0
+    snappedEnds: 0, looseEnds: 0, joinedEnds: 0, reachedEnds: 0, danglingEnds: 0, vertexJunctions: 0, throughLandings: 0,
+    unplacedLandings: 0, junctions: 0, junctionsMerged: 0, fragmentsDropped: 0, inPieces: /** @type {string[]} */ ([])
   };
   for (const [cid, c] of [...cables].sort((x, y) => strCmp(x[0], y[0]))) {
-    const year = rfsYear(c.rfs);
-    if (c.is_planned === true || c.is_planned === 'true' || (year !== null && year > 2021)) {
+    const when = serviceDate(c.rfs);
+    if (plannedAtSnapshot(when)) {
       stats.planned.push(cid);
+      if (when?.year === SNAPSHOT_MONTH.year) stats.plannedLate2021.push(`${cid} (${c.rfs})`);
       continue;
     }
-    if (year === null) stats.noYear.push(cid);
+    if (when === null) stats.noYear.push(cid);
     const segs = (lines.get(cid) ?? []).filter((ln) => ln.length >= 2);
     if (!segs.length) {
       stats.noGeometry++;
@@ -303,7 +354,7 @@ function cableGraphs(lps, { cables, lines }) {
         const key = buKey(end);
         if (!at.has(key)) at.set(key, end);
         stops[i].push({ s, key });
-        let best = { j: -1, km: JUNCTION_KM, s: 0 };
+        let best = { j: -1, km: REACH_KM, s: 0 };
         segs.forEach((other, j) => {
           if (j === i) return;
           const near = nearestOnLine(end, other);
@@ -311,9 +362,30 @@ function cableGraphs(lps, { cables, lines }) {
         });
         if (best.j === -1) stats.danglingEnds++;
         else {
-          stats.joinedEnds++;
+          if (best.km <= JUNCTION_KM) stats.joinedEnds++;
+          else stats.reachedEnds++;
           stops[best.j].push({ s: best.s, key });
         }
+      }
+    });
+    // A vertex drawn on another line of the cable is a junction on both (a branch drawn
+    // landing to landing through its branching unit on the trunk).
+    const boxes = segs.map(bbox);
+    segs.forEach((ln, i) => {
+      for (let k = 1; k < ln.length - 1; k++) {
+        const v = ln[k];
+        let best = { j: -1, km: JUNCTION_KM, s: 0 };
+        segs.forEach((other, j) => {
+          if (j === i || !nearBox(boxes[j], v)) return;
+          const near = nearestOnLine(v, other);
+          if (near.km <= best.km && (best.j === -1 || near.km < best.km)) best = { j, km: near.km, s: near.s };
+        });
+        if (best.j === -1) continue;
+        stats.vertexJunctions++;
+        const key = buKey(v);
+        if (!at.has(key)) at.set(key, v);
+        stops[i].push({ s: k, key });
+        stops[best.j].push({ s: best.s, key });
       }
     });
     for (const id of own) {
@@ -394,6 +466,19 @@ function cableGraphs(lps, { cables, lines }) {
       seenFrag.add(k);
       while (q.length) for (const m of adj.get(/** @type {string} */ (q.pop())) ?? []) if (!seenFrag.has(m)) seenFrag.add(m), q.push(m);
     }
+    // A cable still in more than one piece is a sign of a junction the map hides.
+    /** @type {Map<string, string>} */
+    const piece = new Map();
+    /** @param {string} x @returns {string} */
+    const top = (x) => {
+      const up = piece.get(x) ?? x;
+      if (up === x) return x;
+      const r = top(up);
+      piece.set(x, r);
+      return r;
+    };
+    for (const [a, b] of edges) piece.set(top(a), top(b));
+    if (new Set(edges.flat().map(top)).size > 1) stats.inPieces.push(cid);
     /** @type {Map<string, number[]>} */
     const junctions = new Map();
     for (const [a, b] of edges) for (const k of [a, b]) if (k[0] === 'B') junctions.set(k, /** @type {number[]} */ (at.get(k)));
@@ -671,10 +756,20 @@ function main() {
       if (x !== y) linkAt(x, y).cables.add(g.cid);
     }
   }
+  // The 3,000 km rule again, between the hubs the Zoo nodes joined, which can sit up to
+  // R_KM from them.
+  const zooFarAfterClustering = new Set();
+  let zooEdgesFarAfterClustering = 0;
   for (const e of zoo.edges) {
     const x = zooHub[e.a];
     const y = zooHub[e.b];
-    if (x !== y) linkAt(x, y).terr = true;
+    if (x === y) continue;
+    if (km(hubs[x].lon, hubs[x].lat, hubs[y].lon, hubs[y].lat) > ZOO_MAX_KM) {
+      zooEdgesFarAfterClustering++;
+      zooFarAfterClustering.add(keyOf(x, y));
+      continue;
+    }
+    linkAt(x, y).terr = true;
   }
   // The old method, for comparison: every landing point a stretch of cable reaches.
   const reachableLinks = new Set();
@@ -699,6 +794,8 @@ function main() {
   for (const l of links.values()) join(l.a, l.b);
   let deadEnds = 0;
   let passThroughs = 0;
+  /** @type {{ landing: string, junction: string, at: number[], hubLeftUnlinked: boolean }[]} */
+  const lostBranches = [];
   for (let changed = true; changed; ) {
     changed = false;
     for (const x of [...adj.keys()].filter((id) => id >= JBASE).sort((p, q) => p - q)) {
@@ -708,6 +805,10 @@ function main() {
         for (const y of nb) {
           links.delete(keyOf(x, y));
           adj.get(y)?.delete(x);
+          if (y < JBASE) {
+            const j = junctions[x - JBASE];
+            lostBranches.push({ landing: hubs[y].name, junction: j.name, at: [j.lon, j.lat], hubLeftUnlinked: (adj.get(y)?.size ?? 0) === 0 });
+          }
         }
         adj.delete(x);
         deadEnds++;
@@ -801,11 +902,14 @@ function main() {
   if (vercelSpots.size !== NODES.length) fail('two Vercel regions share a hub');
   if (deg.some((d) => d === 0)) fail('a node with no link survived');
   if (deg.some((d, i) => i >= h && d < 3)) fail('a junction where no cable branches survived');
+  if (lostBranches.length > MAX_LOST_BRANCHES)
+    fail(`${lostBranches.length} branches to a landing point were lost as dead ends (at most ${MAX_LOST_BRANCHES}): ${JSON.stringify(lostBranches)}`);
 
   writeOutputs({
     dir, sources, json, net, hubs, junctions, keep, where, h, outLinks, deg, lps, lpFeatures, variants, cableData,
     cableStats, reach, reachableLinks: reachableLinks.size, zoo, tethered,
-    junctionStats: { joinedHubs: junctionsJoinedHubs, deadEnds, passThroughs, stranded: strandedJunctions }
+    junctionStats: { joinedHubs: junctionsJoinedHubs, deadEnds, passThroughs, stranded: strandedJunctions, lostBranches },
+    zooFar: { edges: zooEdgesFarAfterClustering, hubPairs: zooFarAfterClustering.size }
   });
 }
 
@@ -822,7 +926,7 @@ function main() {
  * @param {any} o
  */
 function writeOutputs(o) {
-  const { dir, sources, json, net, hubs, keep, where, h, outLinks, deg, lps, lpFeatures, variants, cableData, cableStats, reach, reachableLinks, zoo, tethered, junctionStats } = o;
+  const { dir, sources, json, net, hubs, keep, where, h, outLinks, deg, lps, lpFeatures, variants, cableData, cableStats, reach, reachableLinks, zoo, tethered, junctionStats, zooFar } = o;
   fs.writeFileSync(path.join(NET, 'net.json'), json);
 
   const kinds = { submarine: 0, submarineAndBackbone: 0, backbone: 0, tether: 0, touchingAJunction: 0, cablesClampedAt15: 0 };
@@ -889,8 +993,8 @@ function writeOutputs(o) {
       topologyZoo: sources.topozoo.license
     },
     parameters: {
-      clusterRadiusKm: R_KM, snapKm: SNAP_KM, joinKm: JUNCTION_KM, junctionMergeKm: MERGE_KM,
-      zooMaxKm: ZOO_MAX_KM, plannedAfterYear: 2021, coordinatePrecisionDeg: 0.1, maxBytes: MAX_BYTES
+      clusterRadiusKm: R_KM, snapKm: SNAP_KM, joinKm: JUNCTION_KM, reachKm: REACH_KM, junctionMergeKm: MERGE_KM, maxLostBranches: MAX_LOST_BRANCHES,
+      zooMaxKm: ZOO_MAX_KM, plannedAfter: '2021-06 (a service month or quarter after June 2021, or a year after 2021)', coordinatePrecisionDeg: 0.1, maxBytes: MAX_BYTES
     },
     counts: {
       nodes: keep.length,
@@ -911,7 +1015,8 @@ function writeOutputs(o) {
       landingPointsInHubs: [...lps.values()].filter((lp) => linkedLps.has(lp.name)).length,
       cableGeoFeatures: cableData.geoFeatures,
       cables: cableStats.cables,
-      cablesPlannedOrAfter2021Dropped: cableStats.planned.length,
+      cablesPlannedAtSnapshotDropped: cableStats.planned.length,
+      cablesPlannedLater2021Dropped: cableStats.plannedLate2021,
       cablesWithNoServiceYearKept: cableStats.noYear,
       cablesWithoutGeometry: cableStats.noGeometry,
       cablesYieldingLinks: cableStats.used,
@@ -920,15 +1025,19 @@ function writeOutputs(o) {
       segments: cableStats.segments,
       segmentEndsAtLandingPoints: cableStats.snappedEnds,
       looseSegmentEnds: cableStats.looseEnds,
-      looseEndsJoinedToAnotherSegment: cableStats.joinedEnds,
+      looseEndsJoinedWithin5Km: cableStats.joinedEnds,
+      looseEndsReachedWithin15Km: cableStats.reachedEnds,
       looseEndsLeftDangling: cableStats.danglingEnds,
+      vertexJunctions: cableStats.vertexJunctions,
       landingPointsOnALineInterior: cableStats.throughLandings,
       landingPointsNotOnTheirCable: cableStats.unplacedLandings,
       junctionsMergedWithin25Km: cableStats.junctionsMerged,
       fragmentsNoLandingPointReaches: cableStats.fragmentsDropped,
+      cablesDrawnInMoreThanOnePiece: cableStats.inPieces,
       junctionsAfterMerging: cableStats.junctions,
       junctionsJoinedToAHub: junctionStats.joinedHubs,
       junctionDeadEndsRemoved: junctionStats.deadEnds,
+      branchesToALandingPointLostAsDeadEnds: junctionStats.lostBranches,
       passThroughJunctionsRemoved: junctionStats.passThroughs,
       junctionsStrandedWithoutAHub: junctionStats.stranded,
       landingPointPairsReachable: reach.size,
@@ -940,6 +1049,8 @@ function writeOutputs(o) {
       nodesClustered: zoo.nodes.length,
       edgesKept: zooKept,
       edgesOver3000KmDropped: zoo.long.length,
+      edgesOver3000KmBetweenTheirHubsDropped: zooFar.edges,
+      hubPairsOver3000KmDropped: zooFar.hubPairs,
       longestDropped: zoo.long.slice(0, 10)
     },
     bytes: {
