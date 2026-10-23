@@ -49,14 +49,17 @@
 
 	// A browser the network could not place (the dev server) guesses from its clock.
 	onMount(() => {
-		const shown = [...section.querySelectorAll('img.frame')].find((i) => getComputedStyle(i).display !== 'none');
-		const painted = () => requestAnimationFrame(() => requestAnimationFrame(() => (live = true)));
+		// `complete` is true before a data: SVG has been decoded, so wait for the decode,
+		// two frames for the paint, and a second after the page began, whichever is later.
+		const shown = /** @type {HTMLImageElement | undefined} */ ([...section.querySelectorAll('img.frame')].find((i) => getComputedStyle(i).display !== 'none'));
+		const painted = () =>
+			requestAnimationFrame(() =>
+				requestAnimationFrame(() => setTimeout(() => (live = true), Math.max(0, 1000 - performance.now())))
+			);
 		if (!shown) live = true;
-		else if (/** @type {HTMLImageElement} */ (shown).complete) painted();
 		else {
-			shown.addEventListener('load', painted, { once: true });
-			shown.addEventListener('error', painted, { once: true });
-			setTimeout(() => (live = true), 3000);
+			(shown.decode ? shown.decode() : Promise.resolve()).then(painted, painted);
+			setTimeout(() => (live = true), 4000);
 		}
 		if (lit) return;
 		const guess = guessNode({
