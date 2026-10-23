@@ -24,8 +24,11 @@
 	let lon = start?.lon ?? 0;
 	let revealed = false;
 	// The server's frame is a picture, an <img> per theme (the page's one paint, for
-	// the browser's own metrics); the live SVG takes its place once the page is running.
+	// the browser's own metrics); the live SVG takes its place once the page is running
+	// and that picture has been painted, so the paint is not lost to the swap.
 	let live = false;
+	/** @type {HTMLElement} */
+	let section;
 	$: frame = live ? null : { light: netImage(g, 'light', lit), dark: netImage(g, 'dark', lit) };
 
 	$: g = globe({ lat, lon, step: STEP, lit });
@@ -46,7 +49,15 @@
 
 	// A browser the network could not place (the dev server) guesses from its clock.
 	onMount(() => {
-		live = true;
+		const shown = [...section.querySelectorAll('img.frame')].find((i) => getComputedStyle(i).display !== 'none');
+		const painted = () => requestAnimationFrame(() => requestAnimationFrame(() => (live = true)));
+		if (!shown) live = true;
+		else if (/** @type {HTMLImageElement} */ (shown).complete) painted();
+		else {
+			shown.addEventListener('load', painted, { once: true });
+			shown.addEventListener('error', painted, { once: true });
+			setTimeout(() => (live = true), 3000);
+		}
 		if (lit) return;
 		const guess = guessNode({
 			timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -107,7 +118,7 @@
 	}
 </script>
 
-<section class="net" class:revealed data-lit={lit || ''}>
+<section class="net" class:revealed data-lit={lit || ''} bind:this={section}>
 	{#if frame}
 		<img class="frame light" src={frame.light} width={SIZE} height={SIZE} alt={label} />
 		<img class="frame dark" src={frame.dark} width={SIZE} height={SIZE} alt={label} />
