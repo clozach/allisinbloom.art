@@ -109,9 +109,7 @@
   <div class="tuner-head">
     <button class="move" type="button" data-menu-move-handle>bloom tuner</button>
     <span class="hud">{hud}</span>
-    <span class="head-right">
-      <span class="hint">Esc to close</span>
-    </span>
+    <span class="head-right"></span>
   </div>
   <div class="tuner-body">
   <PipelineCard />
@@ -211,9 +209,6 @@
   }
   .tuner-head .move,
   .tuner-head .hud,
-  .tuner-head .hint {
-    white-space: nowrap;
-  }
   .tuner-head .move {
     border: 0;
     background: none;
@@ -237,14 +232,6 @@
     display: flex;
     align-items: baseline;
     gap: 8px;
-  }
-  .tuner-head .hint {
-    color: #776a80;
-  }
-  @media (pointer: coarse) {
-    .tuner-head .hint {
-      display: none; /* touch closes by tapping outside or holding the corner */
-    }
   }
   .row {
     display: grid;
@@ -289,7 +276,7 @@
   .fields {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px 8px;
+    gap: 4px 8px;
     margin: 4px 0;
   }
   .row input[type='checkbox'] {

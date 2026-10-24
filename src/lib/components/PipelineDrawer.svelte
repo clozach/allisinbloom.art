@@ -31,7 +31,7 @@
 <button class="pipeline-entry" aria-label="Open publishing dashboard" on:pointerdown={() => { hold = setTimeout(() => { open = !open; }, 600); }} on:pointerup={cancelHold} on:pointercancel={cancelHold} on:pointerleave={cancelHold} on:contextmenu|preventDefault on:click={(event) => { if (event.detail === 0) open = !open; }}></button>
 {#if open}
   <aside class="pipeline-dashboard" aria-label="Publishing dashboard" use:movableMenu={'publishing-dashboard'}>
-    <div class="head"><button class="move" type="button" data-menu-move-handle>allisinbloom.art</button><span class="hint">Esc to close</span></div>
+    <div class="head"><button class="move" type="button" data-menu-move-handle>allisinbloom.art</button></div>
     <div class="dashboard-body"><PipelineCard /></div>
   </aside>
 {/if}
@@ -44,6 +44,4 @@
   .head { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; }
   .head .move { background: none; color: inherit; border: 0; padding: 0; font: inherit; font-weight: bold; text-align: left; }
   .head .move:focus-visible { outline: 2px solid #caa8d6; outline-offset: 3px; border-radius: 2px; }
-  .hint { color: #9d8fa6; font-size: 11px; }
-  @media (pointer: coarse) { .hint { display: none; } }
 </style>

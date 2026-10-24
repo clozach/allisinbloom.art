@@ -133,6 +133,7 @@
       spellcheck="false"
       aria-label="{label}{unit ? ` (${unit})` : ''}"
       value={text}
+      size={Math.max(3, text.length)}
       on:focus={(e) => e.currentTarget.select()}
       on:keydown={onKey}
       on:blur={submit}
@@ -144,7 +145,7 @@
   .field {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     min-width: 0;
   }
   .lbl {
@@ -152,13 +153,18 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
+  /* The box hugs its digits (Al, 2026-10-23: no tuner "made from 50% wasted
+     pixels"): 22px tall, a 22px handle, the number sized to its own text. */
   .ctl {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    height: 28px;
+    height: 22px;
+    width: max-content;
+    max-width: 100%;
+    min-width: 4.5em;
     background: rgb(255 255 255 / 0.07);
     border: 1px solid rgb(255 255 255 / 0.14);
-    border-radius: 6px;
+    border-radius: 5px;
   }
   .ctl:focus-within {
     border-color: #caa8d6;
@@ -166,7 +172,7 @@
   .knob {
     display: grid;
     place-items: center;
-    width: 28px;
+    width: 22px;
     height: 100%;
     color: #caa8d6;
     border-right: 1px solid rgb(255 255 255 / 0.12);
@@ -180,14 +186,14 @@
     background: rgb(202 168 214 / 0.18);
   }
   input {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
-    width: 100%;
+    width: auto;
     background: transparent;
     border: 0;
     color: #f1ecf4;
     font: inherit;
-    padding: 0 8px;
+    padding: 0 6px;
     outline: 0;
     font-variant-numeric: tabular-nums;
   }
