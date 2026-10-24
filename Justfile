@@ -53,3 +53,26 @@ agent-status:
 
 agent-logs:
     always-on logs allisinbloom.dev
+
+# ── staging review surface ─────────────────────────────────────────────
+# A second always-on server for the `staging` branch, run from a persistent
+# worktree of it (~/Documents/1-Due/allisinbloom.art-staging), so staging's
+# changes have a running address while 5199 serves whatever branch the main
+# checkout has out. http://t.local:5216 (LAN-visible, HMR). Run these from
+# the staging worktree. Opt out: `just uninstall-staging-agent`.
+
+# launchd entry point for the staging server
+_serve-staging:
+    pnpm dev --port 5216 --strictPort
+
+install-staging-agent:
+    always-on install allisinbloom.staging --cwd "{{justfile_directory()}}" --port 5216 -- /opt/homebrew/bin/just _serve-staging
+
+uninstall-staging-agent:
+    always-on remove allisinbloom.staging
+
+restart-staging-agent:
+    always-on restart allisinbloom.staging
+
+staging-agent-status:
+    always-on status allisinbloom.staging
