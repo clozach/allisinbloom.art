@@ -23,6 +23,7 @@ test.describe('The Net', () => {
     await expect(globe).toHaveAccessibleName(/globe of the network's branches, \d+ hubs and \d+ links\. San Francisco answered you; it is lit/);
     await expect(page.locator('.net .glow .full')).toHaveAttribute('d', /^M/);
     await expect(page.locator('.net .lit')).toHaveCount(1);
+    await expect(page.locator('.net svg > circle:not(.lit):not(.halo)')).toHaveCount(0); // no outline around the Earth
     await expect(page.locator('.net')).toHaveAttribute('data-license', /creativecommons/);
     const ask = page.getByRole('link', { name: 'Poem?' });
     const slug = (await ask.getAttribute('href'))?.match(/^\/poems\/([^/]+)$/)?.[1];

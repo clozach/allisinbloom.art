@@ -156,6 +156,7 @@ test('the first frame is a picture: one SVG document per theme in a data: URI, s
   assert.notEqual(light, dark);
   assert.ok(light.includes('%23533737') && dark.includes('%23e2c8ee'));
   assert.ok(!netImage(globe({ lat: 0, lon: 0 }), 'light').includes("r='26'"), 'no lit node, no halo');
+  assert.ok(!decodeURIComponent(light).includes("r='440'"), 'no outline around the Earth');
 });
 
 test('picks are deterministic, spread, and keyed by node and minute', () => {

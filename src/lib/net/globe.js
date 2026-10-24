@@ -271,7 +271,6 @@ export function netImage(g, theme) {
     d ? `<path d='${d}' fill='none' stroke='${stroke}' stroke-width='${w}' stroke-opacity='${o}' stroke-linecap='round'/>` : '';
   const svg =
     `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${SIZE} ${SIZE}'>` +
-    `<circle cx='${CX}' cy='${CY}' r='${R}' fill='none' stroke='${c.ink}' stroke-opacity='0.3' stroke-width='1.5'/>` +
     dots(g.hubs.back, c.ink, 3, 0.1) +
     line(g.arcs.terr, c.ink, ...STROKES.terr) +
     line(g.arcs.tether, c.ink, ...STROKES.tether) +

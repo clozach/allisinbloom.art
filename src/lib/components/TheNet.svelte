@@ -155,7 +155,6 @@
 		on:pointercancel={up}
 	>
 		<desc>{desc}</desc>
-			<circle class="limb" cx={CX} cy={CY} r={R} />
 			<path class="hubs back" d={g.hubs.back} />
 			<path class="arc terr" d={g.arcs.terr} />
 			<path class="arc tether" d={g.arcs.tether} />
@@ -214,12 +213,6 @@
 		.frame.dark {
 			display: block;
 		}
-	}
-	.limb {
-		fill: none;
-		stroke: var(--ink);
-		stroke-opacity: 0.3;
-		stroke-width: 1.5;
 	}
 	/* branches, by weight: one cable, a few, many; backbone hops thinner; the
 	   schematic links to a region dotted. Same numbers as globe.js's STROKES. */
