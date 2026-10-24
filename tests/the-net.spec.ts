@@ -58,8 +58,18 @@ test.describe('The Net', () => {
     await page.keyboard.press('ArrowRight');
     expect(await front.getAttribute('d')).not.toBe(before);
     expect(await page.locator('.net .lit').getAttribute('cx')).not.toBe(litBefore);
+    // turned half way round, Tokyo is behind the Earth: the offer hides where it last stood
+    const ask = page.getByRole('link', { name: 'Poem?' });
+    for (let i = 0; i < 34; i++) await page.keyboard.press('ArrowRight');
+    await expect(page.locator('.net .lit')).toHaveCount(0);
+    await expect(ask).toHaveClass(/away/);
+    await expect.poll(() => ask.evaluate((el) => getComputedStyle(el).opacity)).toBe('0');
+    expect(await ask.evaluate((el) => el.style.left)).not.toBe('50%');
+    await expect(ask).toBeFocused();
     await page.keyboard.press('Home');
     expect(await page.locator('.net .lit').getAttribute('cx')).toBe(litBefore);
+    await expect(ask).not.toHaveClass(/away/);
+    expect(await ask.evaluate((el) => el.style.left)).toBe('50%'); // Home: the node is back in the middle, and the offer with it
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/\/poems\//);
   });

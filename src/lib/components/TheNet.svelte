@@ -37,7 +37,14 @@
 	$: g = globe({ lat, lon, lit });
 	$: node = nodeByCode(lit);
 	$: dot = g.litDot;
-	$: anchor = dot && dot.front ? dot : { x: CX, y: CY };
+	// The offer stays with the lit node. While that node is behind the Earth the offer
+	// is hidden where it last stood (it stays focusable, so the arrow keys or Home can
+	// bring the node back); with no lit node at all it sits in the middle.
+	/** @type {{ x: number, y: number }} */
+	let lastSeen = { x: CX, y: CY };
+	$: if (dot && dot.front) lastSeen = { x: dot.x, y: dot.y };
+	$: away = !!dot && !dot.front;
+	$: anchor = dot ? lastSeen : { x: CX, y: CY };
 	$: label = node
 		? `The Net: a globe of the network's branches, ${COUNTS.hubs} hubs and ${COUNTS.links} links. ${node.city} answered you; it is lit.`
 		: `The Net: a globe of the network's branches, ${COUNTS.hubs} hubs and ${COUNTS.links} links.`;
@@ -172,7 +179,7 @@
 			{#if dot && dot.front}<circle class="lit" cx={dot.x} cy={dot.y} r="8" />{/if}
 	</svg>
 	{/if}
-	<a class="ask" {href} style="left:{anchor.x / 10}%;top:{anchor.y / 10}%" on:keydown={key}>Poem?</a>
+	<a class="ask" class:away {href} style="left:{anchor.x / 10}%;top:{anchor.y / 10}%" on:keydown={key}>Poem?</a>
 	<!-- the credit, in the markup the server sends: read by screen readers and crawlers, reached
 	     without JavaScript, never shown (the Net shows no text); its link is out of the Tab order -->
 	<p class="visually-hidden" id="net-credits">{desc} <a href={CREDITS} tabindex="-1">Credits</a></p>
@@ -322,6 +329,11 @@
 	.net.revealed .ask,
 	.ask:focus-visible {
 		opacity: 1;
+	}
+	/* the lit node is behind the Earth: no offer, wherever the pointer or the focus is */
+	.net .ask.away {
+		opacity: 0;
+		pointer-events: none;
 	}
 	.ask:hover,
 	.ask:focus-visible {
